@@ -471,6 +471,27 @@ const MOTION_COOLDOWN_MS = 1200;
 const REACTION_HOLD_MS = 10000;
 
 const SETTINGS_KEY = 'anddy-experience-v6-settings';
+/* =========================================================
+   LOCAL CAT REACTIONS
+   Files expected inside: /gatos/
+   These take priority over GIPHY when a matching trigger exists.
+========================================================= */
+const LOCAL_CAT_REACTIONS = {
+  'face:surprise': 'gatos/gritando.jpg',
+  'face:blink':    'gatos/coqueto.jpg',
+  'face:smile':    'gatos/jeje.jpg',
+  'face:neutral':  'gatos/serio.jpg',
+
+  'hand:fist':     'gatos/puño.jpg',
+  'hand:thumbsdown':'gatos/enojado.jpg',
+
+  /* Extra categories we can calibrate later */
+  'face:worried':  'gatos/preocupado.jpg',
+  'hand:middle':   'gatos/duren.jpg'
+};
+
+let localReactionToken = 0;
+
 
 const DEFAULT_SETTINGS = {
   mode:'both',
@@ -484,6 +505,7 @@ const DEFAULT_SETTINGS = {
     'hand:one':       {type:'gif', value:'one finger wait reaction'},
     'hand:rock':      {type:'gif', value:'rock on hand gesture reaction'},
     'hand:callme':    {type:'gif', value:'call me hand gesture reaction'},
+    'hand:middle':    {type:'gif', value:'rude funny reaction'},
     'motion:wave':    {type:'gif', value:'waving hello reaction'},
     'motion:swipeleft': {type:'gif', value:'swipe left nope reaction'},
     'motion:swiperight':{type:'gif', value:'swipe right lets go reaction'},
@@ -491,7 +513,8 @@ const DEFAULT_SETTINGS = {
     'face:smile':  {type:'gif', value:'smiling happy reaction'},
     'face:surprise':{type:'sticker', value:'surprised shocked reaction'},
     'face:blink':  {type:'gif', value:'wink reaction gif'},
-    'face:neutral':{type:'emoji', value:'😐'}
+    'face:neutral':{type:'emoji', value:'😐'},
+    'face:worried':{type:'gif', value:'worried reaction'}
   }
 };
 
@@ -559,6 +582,7 @@ const reactions = {
   one:        ['☝️','ONE'],
   rock:       ['🤟','ROCK'],
   callme:     ['🤙','CALL ME'],
+  middle:     ['🖕','MIDDLE FINGER'],
   other:      ['🐈','MOVE YOUR HAND']
 };
 
@@ -594,6 +618,9 @@ function classify(lm){
   // Rock / I love you: index + pinky (+ thumb allowed).
   if(index && !middle && !ring && pinky) return 'rock';
 
+  // Middle finger only.
+  if(!index && middle && !ring && !pinky) return 'middle';
+
   // One finger up.
   if(index && !middle && !ring && !pinky) return 'one';
 
@@ -612,6 +639,37 @@ function reactionEndpoint(type){
     : 'https://api.giphy.com/v1/gifs/search';
 }
 
+
+async function showLocalCatReaction(triggerKey){
+  const src = LOCAL_CAT_REACTIONS[triggerKey];
+  if(!src) return false;
+
+  const token = ++localReactionToken;
+
+  return new Promise(resolve=>{
+    customReactionImage.onload=()=>{
+      if(token!==localReactionToken) return resolve(false);
+
+      ++gifRequestToken;
+      gifReaction.removeAttribute('src');
+      gifReaction.classList.add('hidden');
+      cat.classList.add('hidden');
+
+      customReactionImage.classList.remove('hidden');
+      gifStatus.textContent='local cat · '+triggerKey.replace(':',' ');
+      resolve(true);
+    };
+
+    customReactionImage.onerror=()=>{
+      console.warn('Local cat missing:',src);
+      customReactionImage.classList.add('hidden');
+      resolve(false);
+    };
+
+    customReactionImage.src=src;
+  });
+}
+
 async function showConfiguredReaction(triggerKey){
   const now = performance.now();
   if(now < reactionLockedUntil) return;
@@ -620,6 +678,11 @@ async function showConfiguredReaction(triggerKey){
   lastTriggerKey = triggerKey;
   reactionLockedUntil = now + REACTION_HOLD_MS;
 
+  /* First choice: your own cat image for this gesture/expression. */
+  const usedLocalCat = await showLocalCatReaction(triggerKey);
+  if(usedLocalCat) return;
+
+  /* Fallback: configured GIPHY / sticker / emoji / custom image. */
   const cfg = appSettings.reactions[triggerKey];
   if(!cfg) return;
 
@@ -1300,10 +1363,12 @@ function classifyFace(result){
   const blinkLeft=faceScore(cats,'eyeBlinkLeft');
   const blinkRight=faceScore(cats,'eyeBlinkRight');
   const blink=Math.max(blinkLeft,blinkRight);
+  const frown=(faceScore(cats,'mouthFrownLeft')+faceScore(cats,'mouthFrownRight'))/2;
 
   if(blink>.72)return 'blink';
   if(jaw>.50 && (browInner>.18 || browOuter>.18))return 'surprise';
   if(smile>.48)return 'smile';
+  if(frown>.32 && browInner>.18)return 'worried';
   return 'neutral';
 }
 
@@ -1321,7 +1386,8 @@ function processFace(){
       return;
     }
 
-    drawFaceMesh(result.faceLandmarks[0]);
+    // Face detection stays active, but the facial mesh is not drawn.
+    clearFaceOverlay();
 
     const exp=classifyFace(result);
     const now=performance.now();
@@ -1395,6 +1461,7 @@ async function loop(){
     lastTriggerKey = '';
     lastGifGesture = '';
     gifStatus.textContent = 'ready for next reaction';
+    customReactionImage.classList.add('hidden');
   }
 
   requestAnimationFrame(loop);
@@ -1411,6 +1478,7 @@ const REACTION_LABELS = {
   'hand:one':'☝️ One',
   'hand:rock':'🤟 Rock / I love you',
   'hand:callme':'🤙 Call me',
+  'hand:middle':'🖕 Middle finger',
   'motion:wave':'👋 Wave',
   'motion:swipeleft':'⬅️ Swipe left',
   'motion:swiperight':'➡️ Swipe right',
@@ -1418,7 +1486,8 @@ const REACTION_LABELS = {
   'face:smile':'🙂 Smile',
   'face:surprise':'😮 Surprise',
   'face:blink':'😉 Blink',
-  'face:neutral':'😐 Neutral'
+  'face:neutral':'😐 Neutral',
+  'face:worried':'😟 Worried'
 };
 
 function renderReactionEditor(){
