@@ -147,6 +147,15 @@ button:hover{transform:scale(1.02)}
 }
 </style>
 
+
+<style id="andy-mediapipe-v5-diagnostics-css">
+.gif-status{
+  max-width:90%;
+  text-align:center;
+  line-height:1.45;
+}
+</style>
+
 </head>
 <body>
 <div class="noise"></div>
@@ -209,6 +218,40 @@ const gifReaction = document.querySelector('#gifReaction');
 const gifStatus = document.querySelector('#gifStatus');
 const cameraControls = document.querySelector('#cameraControls');
 const cameraToggle = document.querySelector('#cameraToggle');
+
+let detectorRetryButton = null;
+
+function ensureDetectorRetryButton(){
+  if(detectorRetryButton) return detectorRetryButton;
+
+  detectorRetryButton = document.createElement('button');
+  detectorRetryButton.type='button';
+  detectorRetryButton.className='camera-toggle off';
+  detectorRetryButton.textContent='Retry Detector';
+  detectorRetryButton.style.marginLeft='8px';
+
+  detectorRetryButton.addEventListener('click',async()=>{
+    detectorRetryButton.disabled=true;
+    detectorRetryButton.textContent='Loading...';
+
+    recognizer=null;
+    detectorReady=false;
+    detectorLoading=false;
+
+    await initRecognizer();
+
+    detectorRetryButton.disabled=false;
+    detectorRetryButton.textContent='Retry Detector';
+
+    if(detectorReady){
+      detectorRetryButton.remove();
+      detectorRetryButton=null;
+    }
+  });
+
+  cameraControls?.appendChild(detectorRetryButton);
+  return detectorRetryButton;
+}
 
 let recognizer = null;
 let detectorReady = false;
@@ -440,17 +483,58 @@ async function initRecognizer(){
   if(detectorReady || detectorLoading) return;
   detectorLoading = true;
 
-  handLabel.textContent='camera live · detector loading';
-  gifStatus.textContent='loading hand detector...';
+  const setDetectorState = (shortText, detailText) => {
+    handLabel.textContent = shortText;
+    gifStatus.textContent = detailText;
+  };
 
   try{
-    const vision = await import(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm'
+    setDetectorState(
+      'camera live · loading detector',
+      'detector: loading MediaPipe library'
     );
 
-    const resolver = await vision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
+    /* Official MediaPipe Tasks Vision browser bundle */
+    let vision;
+    try{
+      vision = await import(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs'
+      );
+    }catch(err){
+      console.error('MediaPipe library load failed:',err);
+      throw new Error('LIBRARY_LOAD_FAILED: ' + (err?.message || err));
+    }
+
+    const FilesetResolver = vision.FilesetResolver;
+    const HandLandmarker = vision.HandLandmarker;
+
+    if(!FilesetResolver || !HandLandmarker){
+      console.error('Unexpected MediaPipe exports:',Object.keys(vision));
+      throw new Error('LIBRARY_EXPORTS_MISSING');
+    }
+
+    setDetectorState(
+      'camera live · loading detector',
+      'detector: loading WASM runtime'
     );
+
+    let resolver;
+    try{
+      resolver = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+      );
+    }catch(err){
+      console.error('MediaPipe WASM failed:',err);
+      throw new Error('WASM_LOAD_FAILED: ' + (err?.message || err));
+    }
+
+    setDetectorState(
+      'camera live · loading detector',
+      'detector: loading hand model'
+    );
+
+    const modelAssetPath =
+      'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
     const commonOptions = {
       runningMode:'VIDEO',
@@ -460,52 +544,84 @@ async function initRecognizer(){
       minTrackingConfidence:.5
     };
 
-    /* 1) Intento GPU */
+    /* GPU first. */
     try{
-      recognizer = await vision.HandLandmarker.createFromOptions(
+      recognizer = await HandLandmarker.createFromOptions(
         resolver,
         {
           ...commonOptions,
           baseOptions:{
-            modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            modelAssetPath,
             delegate:'GPU'
           }
         }
       );
 
       detectorReady = true;
-      handLabel.textContent='waiting for gesture';
-      gifStatus.textContent='hand detector ready · GPU';
-      console.log('MediaPipe HandLandmarker: GPU');
+      setDetectorState(
+        'waiting for gesture',
+        'hand detector ready · GPU'
+      );
+      console.log('MediaPipe detector ready using GPU');
       return;
 
-    }catch(gpuError){
-      console.warn('GPU detector failed, retrying CPU:',gpuError);
+    }catch(gpuErr){
+      console.warn('GPU initialization failed; trying default CPU:',gpuErr);
+      setDetectorState(
+        'camera live · GPU failed',
+        'detector: retrying with CPU'
+      );
     }
 
-    /* 2) Fallback CPU — no delegate */
-    recognizer = await vision.HandLandmarker.createFromOptions(
-      resolver,
-      {
-        ...commonOptions,
-        baseOptions:{
-          modelAssetPath:
-            'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
+    /* Default delegate = CPU. */
+    try{
+      recognizer = await HandLandmarker.createFromOptions(
+        resolver,
+        {
+          ...commonOptions,
+          baseOptions:{ modelAssetPath }
         }
-      }
-    );
+      );
+    }catch(cpuErr){
+      console.error('CPU initialization failed:',cpuErr);
+      throw new Error('MODEL_OR_DETECTOR_FAILED: ' + (cpuErr?.message || cpuErr));
+    }
 
     detectorReady = true;
-    handLabel.textContent='waiting for gesture';
-    gifStatus.textContent='hand detector ready · CPU';
-    console.log('MediaPipe HandLandmarker: CPU fallback');
+    setDetectorState(
+      'waiting for gesture',
+      'hand detector ready · CPU'
+    );
+    console.log('MediaPipe detector ready using CPU');
 
   }catch(err){
-    console.error('Hand detector failed completely:',err);
+    console.error('Hand detector fatal error:',err);
+    recognizer = null;
     detectorReady = false;
-    handLabel.textContent='camera live · detector failed';
-    gifStatus.textContent='hand detector failed · reload page';
+
+    const msg = String(err?.message || err);
+
+    let publicMessage='detector failed';
+    let detail='unknown detector error';
+
+    if(msg.includes('LIBRARY_LOAD_FAILED')){
+      publicMessage='library failed';
+      detail='MediaPipe library could not load';
+    }else if(msg.includes('LIBRARY_EXPORTS_MISSING')){
+      publicMessage='library incompatible';
+      detail='MediaPipe bundle exports missing';
+    }else if(msg.includes('WASM_LOAD_FAILED')){
+      publicMessage='WASM failed';
+      detail='MediaPipe WASM runtime could not load';
+    }else if(msg.includes('MODEL_OR_DETECTOR_FAILED')){
+      publicMessage='model failed';
+      detail='hand model / detector could not initialize';
+    }
+
+    handLabel.textContent='camera live · ' + publicMessage;
+    gifStatus.textContent=detail + ' · open browser console for details';
+    ensureDetectorRetryButton();
+
   }finally{
     detectorLoading = false;
   }
@@ -623,7 +739,7 @@ async function loop(){
 
     try{
       const now = performance.now();
-      const result = recognizer.detectForVideo(video,now);
+      const result = recognizer.detectForVideo(video, now);
 
       if(result && result.landmarks && result.landmarks.length){
         const lm=result.landmarks[0];
@@ -631,7 +747,7 @@ async function loop(){
         react(classify(lm));
       }else{
         clearOverlay();
-        react('other');
+        if(detectorReady) react('other');
       }
     }catch(err){
       console.warn('detectForVideo error:',err);
