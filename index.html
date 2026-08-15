@@ -452,7 +452,7 @@ let gifRequestToken = 0;
 let faceRecognizer = null;
 let faceReady = false;
 let lastFaceTime = -1;
-let lastFaceExpression = 'neutral';
+let lastFaceExpression = '';
 let faceCandidate='neutral';
 let faceCandidateSince=0;
 let handCandidate='other';
@@ -483,7 +483,7 @@ const LOCAL_CAT_REACTIONS = {
   'face:neutral':  'gatos/serio.jpg',
 
   'hand:fist':     'gatos/puño.jpg',
-  'hand:thumbsdown':'gatos/enojado.jpg',
+  'hand:thumbsdown':'gatos/nojado.jpg',
 
   /* Extra categories we can calibrate later */
   'face:worried':  'gatos/preocupado.jpg',
@@ -491,6 +491,21 @@ const LOCAL_CAT_REACTIONS = {
 };
 
 let localReactionToken = 0;
+const LOCAL_CAT_STATUS = new Map();
+
+function preloadLocalCats(){
+  Object.entries(LOCAL_CAT_REACTIONS).forEach(([key,src])=>{
+    const img=new Image();
+    img.onload=()=>LOCAL_CAT_STATUS.set(key,true);
+    img.onerror=()=>{
+      LOCAL_CAT_STATUS.set(key,false);
+      console.warn('[ANDDY] local cat not found:', key, src);
+    };
+    img.src=encodeURI(src);
+  });
+}
+preloadLocalCats();
+
 
 
 const DEFAULT_SETTINGS = {
@@ -656,17 +671,21 @@ async function showLocalCatReaction(triggerKey){
       cat.classList.add('hidden');
 
       customReactionImage.classList.remove('hidden');
+      LOCAL_CAT_STATUS.set(triggerKey,true);
       gifStatus.textContent='local cat · '+triggerKey.replace(':',' ');
       resolve(true);
     };
 
     customReactionImage.onerror=()=>{
       console.warn('Local cat missing:',src);
+      LOCAL_CAT_STATUS.set(triggerKey,false);
       customReactionImage.classList.add('hidden');
+      gifStatus.textContent='local image missing · using GIPHY';
       resolve(false);
     };
 
-    customReactionImage.src=src;
+    gifStatus.textContent='loading local cat...';
+    customReactionImage.src=encodeURI(src);
   });
 }
 
@@ -1408,9 +1427,8 @@ function processFace(){
       showConfiguredReaction('face:'+exp);
     }
 
-    if(exp==='neutral' && now-faceCandidateSince>900){
-      lastFaceExpression='neutral';
-    }
+    /* Neutral is also a valid reaction and may show serio.jpg.
+       Do not pre-mark it here; the stable-expression block above handles it. */
 
   }catch(err){
     console.warn('Face detect error:',err);
@@ -1460,6 +1478,7 @@ async function loop(){
     reactionLockedUntil = 0;
     lastTriggerKey = '';
     lastGifGesture = '';
+    lastFaceExpression = '';
     gifStatus.textContent = 'ready for next reaction';
     customReactionImage.classList.add('hidden');
   }
