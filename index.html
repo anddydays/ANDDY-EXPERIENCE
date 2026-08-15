@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ANDDY — Experience 01</title>
+<title>ANDDY EXPERIENCE — Interactive Visual Experiment</title>
 <meta name="theme-color" content="#0a0a0a">
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#090909;color:#f4f1ea;font-family:Arial,Helvetica,sans-serif;min-height:100%;overflow-x:hidden}
@@ -254,22 +254,91 @@ select,input[type="text"]{
 }
 </style>
 
+
+<meta name="description" content="ANDDY EXPERIENCE — interactive camera, hand gesture and facial-expression visual experiment by Andy / anddy.days.">
+<meta name="author" content="Andy / anddy.days">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#090909">
+<meta name="color-scheme" content="dark">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="canonical" href="https://anddydays.github.io/ANDDY-EXPERIENCE/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="ANDDY EXPERIENCE">
+<meta property="og:description" content="Interactive camera, hand gesture and facial-expression experiment by Andy / anddy.days.">
+<meta property="og:url" content="https://anddydays.github.io/ANDDY-EXPERIENCE/">
+<meta property="og:site_name" content="ANDDY EXPERIENCE">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ANDDY EXPERIENCE">
+<meta name="twitter:description" content="Interactive camera, hand gesture and facial-expression experiment by Andy / anddy.days.">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://api.giphy.com" crossorigin>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090909'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E">
+
+
+<style id="anddy-professional-safe-v10-css">
+/* Professional additions only — intentionally does not alter the existing layout. */
+.skip-link{
+  position:fixed;left:14px;top:10px;z-index:9999;
+  transform:translateY(-160%);
+  padding:9px 13px;border-radius:999px;
+  background:#fff;color:#000;text-decoration:none;
+  font:700 11px Arial,sans-serif;
+}
+.skip-link:focus{transform:none}
+
+.info-chip{
+  position:fixed;left:18px;top:86px;z-index:40;
+  padding:8px 11px;border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;background:rgba(8,8,8,.5);
+  color:#aaa;font:700 9px Arial,sans-serif;
+  letter-spacing:.11em;text-transform:uppercase;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+
+.professional-note{
+  position:fixed;left:18px;bottom:18px;z-index:45;
+  max-width:min(360px,70vw);
+  padding:10px 12px;border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;background:rgba(8,8,8,.62);
+  color:#9b9b9b;font:10px/1.45 Arial,sans-serif;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.professional-note strong{color:#ddd}
+
+@media(max-width:760px){
+  .info-chip{top:68px;left:12px;font-size:8px}
+  .professional-note{left:12px;right:12px;bottom:12px;max-width:none;font-size:9px}
+}
+</style>
+
 </head>
 <body>
+<a class="skip-link" href="#experienceMain">Skip to experience</a>
+<div class="info-chip">LOCAL CAMERA PROCESSING · HAND + FACE</div>
+<div class="professional-note"><strong>Privacy:</strong> camera access is controlled by your browser and can be turned off at any time. Detection runs locally in your browser.</div>
 <div class="noise"></div>
 <header>
   <div class="brand">ANDY / ANDDY.DAYS — EXPERIENCE 01</div>
   <div class="header-actions">
-      <button id="customizeOpen" class="mini-button" type="button">Customize</button>
+      <button id="customizeOpen" aria-haspopup="dialog" class="mini-button" type="button">Customize</button>
       <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">camera offline</span></div>
     </div>
 </header>
 
-<main>
+<main id="experienceMain">
 <section class="panel">
   <div class="panel-title">01 / camera + gesture</div>
   <div class="camera-wrap">
-    <video id="camera" autoplay muted playsinline></video>
+    <video id="camera" aria-label="Live camera preview" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
     <canvas id="faceOverlay"></canvas>
 
@@ -283,7 +352,7 @@ select,input[type="text"]{
     <div id="faceLabel" class="face-badge hidden">face: waiting</div>
 
     <div id="cameraControls" class="camera-controls hidden">
-      <button id="cameraToggle" class="camera-toggle" type="button">Camera Off</button>
+      <button id="cameraToggle" aria-pressed="false" class="camera-toggle" type="button">Camera Off</button>
     </div>
   </div>
 </section>
@@ -291,7 +360,22 @@ select,input[type="text"]{
 <section class="panel">
   <div class="panel-title">02 / reaction</div>
   <div class="reaction">
-    <div id=<script type="module">
+    <div id="reactionCard" class="reaction-card">
+      <div id="gifStage" class="gif-stage">
+        <div id="cat" class="cat">🐈</div>
+        <img id="gifReaction" class="gif-reaction hidden" alt="GIPHY reaction">
+        <img id="customReactionImage" class="custom-reaction-image hidden" alt="Custom reaction">
+      </div>
+      <div id="gestureText" class="gesture">waiting...</div>
+      <div id="gifStatus" class="gif-status">gesture reaction ready</div>
+      <a class="giphy-credit" href="https://giphy.com/" target="_blank" rel="noopener">Powered by GIPHY</a>
+    </div>
+    <div class="hint">Open palm · fist · peace · thumbs · rock · call me · wave · swipe<br>Each stable gesture requests one matching reaction from GIPHY.</div>
+  </div>
+</section>
+</main>
+
+<script type="module">
 const video = document.querySelector('#camera');
 const canvas = document.querySelector('#overlay');
 const ctx = canvas.getContext('2d');
@@ -1453,39 +1537,9 @@ window.addEventListener('pagehide',()=>{
     stream.getTracks().forEach(track=>track.stop());
   }
 });
-</script>sync()=>{
-  if(cameraEnabled){
-    stopCamera();
-  }else{
-    cameraToggle.textContent='Opening...';
-    cameraToggle.disabled=true;
-    await startCamera();
-    cameraToggle.disabled=false;
-  }
-});
-
-window.addEventListener('resize',resizeCanvas);
-
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden && cameraEnabled){
-    /* Por privacidad, al ocultar la pestaña detenemos el análisis,
-       pero no quitamos el permiso ni apagamos el stream automáticamente. */
-    running=false;
-  }else if(!document.hidden && cameraEnabled){
-    running=true;
-    lastVideoTime=-1;
-    requestAnimationFrame(loop);
-  }
-});
-
-window.addEventListener('pagehide',()=>{
-  if(stream){
-    stream.getTracks().forEach(track=>track.stop());
-  }
-});
 </script>
 
-<aside id="customizePanel" class="customize-panel" aria-hidden="true">
+<aside id="customizePanel" class="customize-panel" role="dialog" aria-modal="true" aria-label="Customize reactions" aria-hidden="true">
   <div class="customize-head">
     <div>
       <div class="eyebrow">ANDDY / CONTROL PANEL</div>
@@ -1515,6 +1569,13 @@ window.addEventListener('pagehide',()=>{
   <p class="storage-note">Settings and custom images are stored only in this browser.</p>
 </aside>
 <div id="panelScrim" class="panel-scrim"></div>
+
+
+<noscript>
+  <div style="padding:18px;background:#111;color:#eee;font-family:Arial,sans-serif">
+    ANDDY EXPERIENCE requires JavaScript to use camera tracking and interactive reactions.
+  </div>
+</noscript>
 
 </body>
 </html>
