@@ -137,6 +137,16 @@ button:hover{transform:scale(1.02)}
 }
 </style>
 
+
+<style id="andy-detector-v4-css">
+#handLabel{
+  max-width:70%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+</style>
+
 </head>
 <body>
 <div class="noise"></div>
@@ -218,7 +228,7 @@ let gifRequestToken = 0;
    IMPORTANT: If you commit this exact key to a public GitHub
    repository, other people can see it in the page source.
 ========================================================= */
-const GIPHY_API_KEY = 'PASTE_YOUR_GIPHY_KEY_HERE';
+const GIPHY_API_KEY = 'xkHDI2YzqBfT14Yu8uhiKHTXHMizq5uo';
 
 const GIPHY_QUERIES = {
   open: [
@@ -270,7 +280,7 @@ async function fetchReactionGif(type){
 
   if(
     !GIPHY_API_KEY ||
-    GIPHY_API_KEY === 'PASTE_YOUR_GIPHY_KEY_HERE'
+    GIPHY_API_KEY === 'xkHDI2YzqBfT14Yu8uhiKHTXHMizq5uo'
   ){
     gifStatus.textContent='paste your GIPHY key to enable internet reactions';
     return;
@@ -430,9 +440,10 @@ async function initRecognizer(){
   if(detectorReady || detectorLoading) return;
   detectorLoading = true;
 
-  try{
-    handLabel.textContent='camera live · detector loading';
+  handLabel.textContent='camera live · detector loading';
+  gifStatus.textContent='loading hand detector...';
 
+  try{
     const vision = await import(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm'
     );
@@ -441,24 +452,60 @@ async function initRecognizer(){
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
     );
 
-    recognizer = await vision.HandLandmarker.createFromOptions(resolver,{
-      baseOptions:{
-        modelAssetPath:
-          'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-        delegate:'GPU'
-      },
+    const commonOptions = {
       runningMode:'VIDEO',
       numHands:1,
-      minHandDetectionConfidence:.55,
+      minHandDetectionConfidence:.5,
+      minHandPresenceConfidence:.5,
       minTrackingConfidence:.5
-    });
+    };
+
+    /* 1) Intento GPU */
+    try{
+      recognizer = await vision.HandLandmarker.createFromOptions(
+        resolver,
+        {
+          ...commonOptions,
+          baseOptions:{
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            delegate:'GPU'
+          }
+        }
+      );
+
+      detectorReady = true;
+      handLabel.textContent='waiting for gesture';
+      gifStatus.textContent='hand detector ready · GPU';
+      console.log('MediaPipe HandLandmarker: GPU');
+      return;
+
+    }catch(gpuError){
+      console.warn('GPU detector failed, retrying CPU:',gpuError);
+    }
+
+    /* 2) Fallback CPU — no delegate */
+    recognizer = await vision.HandLandmarker.createFromOptions(
+      resolver,
+      {
+        ...commonOptions,
+        baseOptions:{
+          modelAssetPath:
+            'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
+        }
+      }
+    );
 
     detectorReady = true;
     handLabel.textContent='waiting for gesture';
+    gifStatus.textContent='hand detector ready · CPU';
+    console.log('MediaPipe HandLandmarker: CPU fallback');
+
   }catch(err){
-    console.error('Hand detector failed:',err);
+    console.error('Hand detector failed completely:',err);
     detectorReady = false;
-    handLabel.textContent='camera live · detector unavailable';
+    handLabel.textContent='camera live · detector failed';
+    gifStatus.textContent='hand detector failed · reload page';
   }finally{
     detectorLoading = false;
   }
@@ -575,9 +622,10 @@ async function loop(){
     lastVideoTime = video.currentTime;
 
     try{
-      const result = recognizer.detectForVideo(video,performance.now());
+      const now = performance.now();
+      const result = recognizer.detectForVideo(video,now);
 
-      if(result.landmarks?.length){
+      if(result && result.landmarks && result.landmarks.length){
         const lm=result.landmarks[0];
         drawHand(lm);
         react(classify(lm));
@@ -587,6 +635,7 @@ async function loop(){
       }
     }catch(err){
       console.warn('detectForVideo error:',err);
+      clearOverlay();
     }
   }
 
