@@ -156,12 +156,71 @@ button:hover{transform:scale(1.02)}
 }
 </style>
 
+
+<style id="andy-v6-hands-face-customize-css">
+.header-actions{display:flex;align-items:center;gap:16px}
+.mini-button,.icon-button,.secondary-button{
+  appearance:none;border:1px solid #444;background:#111;color:#eee;
+  font:700 10px/1 Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer
+}
+.mini-button{padding:9px 13px;border-radius:999px}
+.icon-button{width:38px;height:38px;border-radius:50%;font-size:22px;letter-spacing:0}
+.secondary-button{padding:12px 14px;border-radius:999px;width:100%}
+.customize-panel{
+  position:fixed;z-index:100;top:0;right:0;width:min(430px,92vw);height:100dvh;
+  padding:22px;background:#0b0b0b;border-left:1px solid #333;
+  transform:translateX(105%);transition:transform .34s cubic-bezier(.2,.8,.2,1);
+  overflow-y:auto;overscroll-behavior:contain
+}
+.customize-panel.open{transform:translateX(0)}
+.panel-scrim{position:fixed;z-index:99;inset:0;background:rgba(0,0,0,.56);opacity:0;pointer-events:none;transition:opacity .3s}
+.panel-scrim.open{opacity:1;pointer-events:auto}
+.customize-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px}
+.customize-head h2{font:400 32px/1 Georgia,serif;margin:5px 0 0}
+.eyebrow,.control-title,.control-block label,.storage-note{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#888}
+.control-block{padding:18px 0;border-top:1px solid #292929}
+.control-block label,.control-title{display:block;margin-bottom:10px}
+select,input[type="text"]{
+  width:100%;border:1px solid #383838;border-radius:12px;background:#111;color:#eee;
+  padding:12px;font:12px Arial,sans-serif
+}
+.reaction-row{padding:14px 0;border-bottom:1px solid #222}
+.reaction-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.reaction-name{font:700 11px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.reaction-source{font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.1em}
+.reaction-grid{display:grid;grid-template-columns:110px 1fr;gap:8px}
+.reaction-grid select{min-width:0}
+.file-label{
+  display:block;margin-top:8px;padding:10px 12px;border:1px dashed #444;border-radius:10px;
+  color:#aaa;font-size:10px;cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.1em
+}
+.file-label input{display:none}
+.control-actions{padding-top:18px}
+.storage-note{line-height:1.5;margin-top:18px}
+.face-badge{
+  position:absolute;z-index:5;top:52px;right:20px;padding:9px 12px;border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#ddd
+}
+.gif-stage .custom-reaction-image{width:100%;height:100%;object-fit:contain}
+@media(max-width:760px){
+  header{gap:8px}.brand{font-size:9px}.header-actions{gap:8px}.status{font-size:9px}
+  .mini-button{padding:8px 10px;font-size:8px}
+  .customize-panel{width:100%;padding:18px}
+  .reaction-grid{grid-template-columns:96px 1fr}
+}
+</style>
+
 </head>
 <body>
 <div class="noise"></div>
 <header>
   <div class="brand">ANDY / ANDDY.DAYS — EXPERIENCE 01</div>
-  <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">camera offline</span></div>
+  <div class="header-actions">
+      <button id="customizeOpen" class="mini-button" type="button">Customize</button>
+      <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">camera offline</span></div>
+    </div>
 </header>
 
 <main>
@@ -178,6 +237,7 @@ button:hover{transform:scale(1.02)}
     </div>
 
     <div id="handLabel" class="hand-label hidden">waiting for gesture</div>
+    <div id="faceLabel" class="face-badge hidden">face: waiting</div>
 
     <div id="cameraControls" class="camera-controls hidden">
       <button id="cameraToggle" class="camera-toggle" type="button">Camera Off</button>
@@ -192,6 +252,7 @@ button:hover{transform:scale(1.02)}
       <div id="gifStage" class="gif-stage">
         <div id="cat" class="cat">🐈</div>
         <img id="gifReaction" class="gif-reaction hidden" alt="GIPHY reaction">
+        <img id="customReactionImage" class="custom-reaction-image hidden" alt="Custom reaction">
       </div>
       <div id="gestureText" class="gesture">waiting...</div>
       <div id="gifStatus" class="gif-status">gesture reaction ready</div>
@@ -216,6 +277,15 @@ const cat = document.querySelector('#cat');
 const gestureText = document.querySelector('#gestureText');
 const gifReaction = document.querySelector('#gifReaction');
 const gifStatus = document.querySelector('#gifStatus');
+const customReactionImage = document.querySelector('#customReactionImage');
+const faceLabel = document.querySelector('#faceLabel');
+const customizeOpen = document.querySelector('#customizeOpen');
+const customizePanel = document.querySelector('#customizePanel');
+const customizeClose = document.querySelector('#customizeClose');
+const panelScrim = document.querySelector('#panelScrim');
+const detectionMode = document.querySelector('#detectionMode');
+const reactionEditor = document.querySelector('#reactionEditor');
+const resetSettings = document.querySelector('#resetSettings');
 const cameraControls = document.querySelector('#cameraControls');
 const cameraToggle = document.querySelector('#cameraToggle');
 
@@ -265,6 +335,46 @@ let gestureCandidate = '';
 let gestureCandidateSince = 0;
 let lastGifGesture = '';
 let gifRequestToken = 0;
+let faceRecognizer = null;
+let faceReady = false;
+let lastFaceTime = -1;
+let lastFaceExpression = 'neutral';
+let lastTriggerKey = '';
+
+const SETTINGS_KEY = 'anddy-experience-v6-settings';
+
+const DEFAULT_SETTINGS = {
+  mode:'both',
+  reactions:{
+    'hand:open':   {type:'gif', value:'shocked cat reaction'},
+    'hand:fist':   {type:'sticker', value:'angry reaction'},
+    'hand:point':  {type:'gif', value:'pointing reaction meme'},
+    'hand:peace':  {type:'gif', value:'happy peace reaction'},
+    'face:smile':  {type:'gif', value:'happy cat reaction'},
+    'face:surprise':{type:'sticker', value:'shocked reaction'},
+    'face:blink':  {type:'gif', value:'wink reaction'},
+    'face:neutral':{type:'emoji', value:'😐'}
+  }
+};
+
+let appSettings = loadSettings();
+
+function loadSettings(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    return saved ? {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      reactions:{...DEFAULT_SETTINGS.reactions,...(saved.reactions||{})}
+    } : structuredClone(DEFAULT_SETTINGS);
+  }catch(e){
+    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  }
+}
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));
+}
+
 
 /* =========================================================
    PASTE YOUR GIPHY API KEY HERE LOCALLY.
@@ -316,6 +426,85 @@ function classify(lm){
   if(f[0] && !f[1] && !f[2] && !f[3]) return 'point';
   if(f[0] && f[1] && !f[2] && !f[3]) return 'peace';
   return 'other';
+}
+
+
+function reactionEndpoint(type){
+  return type === 'sticker'
+    ? 'https://api.giphy.com/v1/stickers/search'
+    : 'https://api.giphy.com/v1/gifs/search';
+}
+
+async function showConfiguredReaction(triggerKey){
+  if(triggerKey === lastTriggerKey) return;
+  lastTriggerKey = triggerKey;
+
+  const cfg = appSettings.reactions[triggerKey];
+  if(!cfg) return;
+
+  gifReaction.classList.add('hidden');
+  customReactionImage.classList.add('hidden');
+  cat.classList.add('hidden');
+
+  if(cfg.type === 'emoji'){
+    cat.textContent = cfg.value || '✨';
+    cat.classList.remove('hidden');
+    gifStatus.textContent = triggerKey.replace(':',' · ');
+    return;
+  }
+
+  if(cfg.type === 'image'){
+    if(cfg.value){
+      customReactionImage.src=cfg.value;
+      customReactionImage.classList.remove('hidden');
+      gifStatus.textContent='custom image · '+triggerKey.replace(':',' ');
+    }else{
+      cat.textContent='🖼️';
+      cat.classList.remove('hidden');
+      gifStatus.textContent='choose a custom image';
+    }
+    return;
+  }
+
+  if(!GIPHY_API_KEY || GIPHY_API_KEY === 'PASTE_YOUR_GIPHY_KEY_HERE'){
+    cat.textContent='🐈';
+    cat.classList.remove('hidden');
+    gifStatus.textContent='GIPHY key missing';
+    return;
+  }
+
+  const token=++gifRequestToken;
+  gifStatus.textContent='searching '+cfg.type+'...';
+
+  try{
+    const params=new URLSearchParams({
+      api_key:GIPHY_API_KEY,
+      q:cfg.value || 'reaction',
+      limit:'12',
+      rating:'g',
+      lang:'en'
+    });
+    const res=await fetch(`${reactionEndpoint(cfg.type)}?${params}`);
+    if(!res.ok) throw new Error('GIPHY '+res.status);
+    const json=await res.json();
+    if(token!==gifRequestToken)return;
+    const items=json.data||[];
+    if(!items.length)throw new Error('No results');
+    const item=items[Math.floor(Math.random()*Math.min(items.length,8))];
+    const url=item.images?.fixed_height?.url || item.images?.downsized_medium?.url || item.images?.original?.url;
+    if(!url)throw new Error('No image URL');
+    gifReaction.onload=()=>{
+      if(token!==gifRequestToken)return;
+      gifReaction.classList.remove('hidden');
+      gifStatus.textContent=cfg.value || triggerKey;
+    };
+    gifReaction.src=url;
+  }catch(err){
+    console.error(err);
+    cat.textContent='😿';
+    cat.classList.remove('hidden');
+    gifStatus.textContent='reaction unavailable';
+  }
 }
 
 async function fetchReactionGif(type){
@@ -423,11 +612,12 @@ function react(type){
     now - gestureCandidateSince > 650
   ){
     lastGifGesture=type;
-    fetchReactionGif(type);
+    showConfiguredReaction('hand:'+type);
   }
 
   if(type === 'other'){
     lastGifGesture='';
+    if(lastTriggerKey.startsWith('hand:')) lastTriggerKey='';
   }
 }
 
@@ -507,6 +697,7 @@ async function initRecognizer(){
 
     const FilesetResolver = vision.FilesetResolver;
     const HandLandmarker = vision.HandLandmarker;
+    const FaceLandmarker = vision.FaceLandmarker;
 
     if(!FilesetResolver || !HandLandmarker){
       console.error('Unexpected MediaPipe exports:',Object.keys(vision));
@@ -544,6 +735,32 @@ async function initRecognizer(){
       minTrackingConfidence:.5
     };
 
+    async function initFaceDetector(){
+      if(!FaceLandmarker) return;
+      try{
+        faceRecognizer = await FaceLandmarker.createFromOptions(resolver,{
+          baseOptions:{
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+          },
+          runningMode:'VIDEO',
+          numFaces:1,
+          outputFaceBlendshapes:true,
+          minFaceDetectionConfidence:.5,
+          minFacePresenceConfidence:.5,
+          minTrackingConfidence:.5
+        });
+        faceReady=true;
+        faceLabel.textContent='face: ready';
+        console.log('MediaPipe FaceLandmarker ready');
+      }catch(err){
+        faceReady=false;
+        faceLabel.textContent='face: unavailable';
+        console.warn('FaceLandmarker failed:',err);
+      }
+    }
+
+
     /* GPU first. */
     try{
       recognizer = await HandLandmarker.createFromOptions(
@@ -558,9 +775,10 @@ async function initRecognizer(){
       );
 
       detectorReady = true;
+      await initFaceDetector();
       setDetectorState(
         'waiting for gesture',
-        'hand detector ready · GPU'
+        faceReady ? 'hands + face ready · GPU' : 'hand detector ready · GPU'
       );
       console.log('MediaPipe detector ready using GPU');
       return;
@@ -588,9 +806,10 @@ async function initRecognizer(){
     }
 
     detectorReady = true;
+    await initFaceDetector();
     setDetectorState(
       'waiting for gesture',
-      'hand detector ready · CPU'
+      faceReady ? 'hands + face ready · CPU' : 'hand detector ready · CPU'
     );
     console.log('MediaPipe detector ready using CPU');
 
@@ -666,6 +885,7 @@ async function startCamera(){
 
     permission.classList.add('hidden');
     handLabel.classList.remove('hidden');
+    faceLabel.classList.remove('hidden');
     cameraControls.classList.remove('hidden');
 
     statusDot.classList.add('live');
@@ -726,10 +946,56 @@ function stopCamera(){
   react('other');
 }
 
+
+function faceScore(categories,name){
+  return categories.find(x=>x.categoryName===name)?.score || 0;
+}
+
+function classifyFace(result){
+  const cats=result?.faceBlendshapes?.[0]?.categories;
+  if(!cats?.length)return 'neutral';
+
+  const smile=(faceScore(cats,'mouthSmileLeft')+faceScore(cats,'mouthSmileRight'))/2;
+  const jaw=faceScore(cats,'jawOpen');
+  const brow=(faceScore(cats,'browInnerUp')+faceScore(cats,'browOuterUpLeft')+faceScore(cats,'browOuterUpRight'))/3;
+  const blink=(faceScore(cats,'eyeBlinkLeft')+faceScore(cats,'eyeBlinkRight'))/2;
+
+  if(jaw>.48 && brow>.18)return 'surprise';
+  if(smile>.42)return 'smile';
+  if(blink>.62)return 'blink';
+  return 'neutral';
+}
+
+function processFace(){
+  if(!faceReady || !faceRecognizer || video.readyState<2)return;
+  if(video.currentTime===lastFaceTime)return;
+  lastFaceTime=video.currentTime;
+
+  try{
+    const result=faceRecognizer.detectForVideo(video,performance.now());
+    if(!result?.faceLandmarks?.length){
+      faceLabel.textContent='face: waiting';
+      return;
+    }
+    const exp=classifyFace(result);
+    faceLabel.textContent='face: '+exp;
+
+    if(exp!==lastFaceExpression){
+      lastFaceExpression=exp;
+      if(appSettings.mode!=='hands'){
+        showConfiguredReaction('face:'+exp);
+      }
+    }
+  }catch(err){
+    console.warn('Face detect error:',err);
+  }
+}
+
 async function loop(){
   if(!running || !cameraEnabled) return;
 
   if(
+    appSettings.mode !== 'face' &&
     detectorReady &&
     recognizer &&
     video.readyState >= 2 &&
@@ -755,8 +1021,101 @@ async function loop(){
     }
   }
 
+  if(appSettings.mode !== 'hands') processFace();
   requestAnimationFrame(loop);
 }
+
+
+const REACTION_LABELS = {
+  'hand:open':'✋ Open palm',
+  'hand:fist':'✊ Fist',
+  'hand:point':'👉 Point',
+  'hand:peace':'✌️ Peace',
+  'face:smile':'🙂 Smile',
+  'face:surprise':'😮 Surprise',
+  'face:blink':'😉 Blink',
+  'face:neutral':'😐 Neutral'
+};
+
+function renderReactionEditor(){
+  reactionEditor.innerHTML='';
+  detectionMode.value=appSettings.mode;
+
+  Object.entries(REACTION_LABELS).forEach(([key,label])=>{
+    const cfg=appSettings.reactions[key];
+    const row=document.createElement('div');
+    row.className='reaction-row';
+    row.innerHTML=`
+      <div class="reaction-row-head">
+        <span class="reaction-name">${label}</span>
+        <span class="reaction-source">${key.split(':')[0]}</span>
+      </div>
+      <div class="reaction-grid">
+        <select data-type="${key}">
+          <option value="gif">GIF</option>
+          <option value="sticker">Sticker</option>
+          <option value="emoji">Emoji</option>
+          <option value="image">My image</option>
+        </select>
+        <input type="text" data-value="${key}" value="${String(cfg.value||'').replace(/"/g,'&quot;')}" placeholder="Search / emoji">
+      </div>
+      <label class="file-label ${cfg.type==='image'?'':'hidden'}" data-file-label="${key}">
+        Choose image
+        <input type="file" accept="image/*" data-file="${key}">
+      </label>`;
+    reactionEditor.appendChild(row);
+
+    const type=row.querySelector(`[data-type="${key}"]`);
+    const value=row.querySelector(`[data-value="${key}"]`);
+    const fileLabel=row.querySelector(`[data-file-label="${key}"]`);
+    type.value=cfg.type;
+
+    type.addEventListener('change',()=>{
+      cfg.type=type.value;
+      fileLabel.classList.toggle('hidden',cfg.type!=='image');
+      saveSettings();
+    });
+    value.addEventListener('change',()=>{
+      cfg.value=value.value;
+      saveSettings();
+    });
+    row.querySelector(`[data-file="${key}"]`).addEventListener('change',e=>{
+      const file=e.target.files?.[0]; if(!file)return;
+      const reader=new FileReader();
+      reader.onload=()=>{
+        cfg.type='image';
+        cfg.value=reader.result;
+        type.value='image';
+        value.value='custom image';
+        fileLabel.classList.remove('hidden');
+        saveSettings();
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
+function setPanel(open){
+  customizePanel.classList.toggle('open',open);
+  panelScrim.classList.toggle('open',open);
+  customizePanel.setAttribute('aria-hidden',String(!open));
+  if(open)renderReactionEditor();
+}
+customizeOpen.addEventListener('click',()=>setPanel(true));
+customizeClose.addEventListener('click',()=>setPanel(false));
+panelScrim.addEventListener('click',()=>setPanel(false));
+detectionMode.addEventListener('change',()=>{
+  appSettings.mode=detectionMode.value;
+  saveSettings();
+  lastTriggerKey='';
+});
+resetSettings.addEventListener('click',()=>{
+  appSettings=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  saveSettings();
+  renderReactionEditor();
+  lastTriggerKey='';
+});
+renderReactionEditor();
 
 start.addEventListener('click',async()=>{
   start.disabled=true;
@@ -795,5 +1154,37 @@ window.addEventListener('pagehide',()=>{
   }
 });
 </script>
+
+<aside id="customizePanel" class="customize-panel" aria-hidden="true">
+  <div class="customize-head">
+    <div>
+      <div class="eyebrow">ANDDY / CONTROL PANEL</div>
+      <h2>Customize reactions</h2>
+    </div>
+    <button id="customizeClose" class="icon-button" type="button" aria-label="Close">×</button>
+  </div>
+
+  <div class="control-block">
+    <label for="detectionMode">Detection mode</label>
+    <select id="detectionMode">
+      <option value="both">Hands + Face</option>
+      <option value="hands">Hands only</option>
+      <option value="face">Face only</option>
+    </select>
+  </div>
+
+  <div class="control-block">
+    <div class="control-title">Reaction editor</div>
+    <div id="reactionEditor" class="reaction-editor"></div>
+  </div>
+
+  <div class="control-actions">
+    <button id="resetSettings" class="secondary-button" type="button">Reset defaults</button>
+  </div>
+
+  <p class="storage-note">Settings and custom images are stored only in this browser.</p>
+</aside>
+<div id="panelScrim" class="panel-scrim"></div>
+
 </body>
 </html>
