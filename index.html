@@ -212,6 +212,14 @@ select,input[type="text"]{
 }
 </style>
 
+
+<style id="andy-v7-face-mesh-css">
+#faceOverlay{
+  position:absolute; inset:0; width:100%; height:100%;
+  z-index:3; pointer-events:none; transform:scaleX(-1);
+}
+</style>
+
 </head>
 <body>
 <div class="noise"></div>
@@ -229,6 +237,7 @@ select,input[type="text"]{
   <div class="camera-wrap">
     <video id="camera" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
+    <canvas id="faceOverlay"></canvas>
 
     <div id="permission" class="permission">
       <h1>Show me<br>your hand.</h1>
@@ -267,6 +276,8 @@ select,input[type="text"]{
 const video = document.querySelector('#camera');
 const canvas = document.querySelector('#overlay');
 const ctx = canvas.getContext('2d');
+const faceCanvas = document.querySelector('#faceOverlay');
+const faceCtx = faceCanvas.getContext('2d');
 const start = document.querySelector('#start');
 const permission = document.querySelector('#permission');
 const statusDot = document.querySelector('#statusDot');
@@ -340,6 +351,8 @@ let faceReady = false;
 let lastFaceTime = -1;
 let lastFaceExpression = 'neutral';
 let lastTriggerKey = '';
+let reactionLockedUntil = 0;
+const REACTION_HOLD_MS = 10000;
 
 const SETTINGS_KEY = 'anddy-experience-v6-settings';
 
@@ -436,8 +449,12 @@ function reactionEndpoint(type){
 }
 
 async function showConfiguredReaction(triggerKey){
+  const now = performance.now();
+  if(now < reactionLockedUntil) return;
   if(triggerKey === lastTriggerKey) return;
+
   lastTriggerKey = triggerKey;
+  reactionLockedUntil = now + REACTION_HOLD_MS;
 
   const cfg = appSettings.reactions[triggerKey];
   if(!cfg) return;
@@ -617,7 +634,9 @@ function react(type){
 
   if(type === 'other'){
     lastGifGesture='';
-    if(lastTriggerKey.startsWith('hand:')) lastTriggerKey='';
+    if(performance.now() >= reactionLockedUntil && lastTriggerKey.startsWith('hand:')){
+      lastTriggerKey='';
+    }
   }
 }
 
@@ -627,8 +646,10 @@ function resizeCanvas(){
   const width = Math.max(1, Math.round(r.width * dpr));
   const height = Math.max(1, Math.round(r.height * dpr));
   if(canvas.width !== width || canvas.height !== height){
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = width; canvas.height = height;
+  }
+  if(faceCanvas.width !== width || faceCanvas.height !== height){
+    faceCanvas.width = width; faceCanvas.height = height;
   }
 }
 
@@ -929,6 +950,7 @@ function stopCamera(){
   video.srcObject = null;
 
   clearOverlay();
+  clearFaceOverlay();
 
   statusDot.classList.remove('live');
   statusText.textContent='camera offline';
@@ -943,9 +965,55 @@ function stopCamera(){
   cat.classList.remove('hidden');
   gifStatus.textContent='camera off';
   lastGifGesture='';
+  lastTriggerKey='';
+  reactionLockedUntil=0;
   react('other');
 }
 
+
+
+function clearFaceOverlay(){
+  faceCtx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+}
+
+function drawFaceMesh(lm){
+  resizeCanvas();
+  clearFaceOverlay();
+  const W=faceCanvas.width, H=faceCanvas.height;
+  const dpr=Math.min(window.devicePixelRatio || 1,2);
+
+  // Dense landmark dots.
+  faceCtx.fillStyle='rgba(185,255,120,.72)';
+  for(const p of lm){
+    faceCtx.beginPath();
+    faceCtx.arc((1-p.x)*W,p.y*H,1.05*dpr,0,Math.PI*2);
+    faceCtx.fill();
+  }
+
+  // Selected contours: jaw, brows, eyes, nose and lips.
+  const paths = [
+    [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10],
+    [70,63,105,66,107,55,65,52,53,46],
+    [300,293,334,296,336,285,295,282,283,276],
+    [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246,33],
+    [263,249,390,373,374,380,381,382,362,398,384,385,386,387,388,466,263],
+    [1,2,98,327,2,1],
+    [61,146,91,181,84,17,314,405,321,375,291,308,324,318,402,317,14,87,178,88,95,78,61],
+    [78,191,80,81,82,13,312,311,310,415,308]
+  ];
+
+  faceCtx.strokeStyle='rgba(185,255,120,.45)';
+  faceCtx.lineWidth=0.75*dpr;
+  for(const path of paths){
+    faceCtx.beginPath();
+    path.forEach((id,i)=>{
+      const p=lm[id]; if(!p)return;
+      const x=(1-p.x)*W, y=p.y*H;
+      if(i===0) faceCtx.moveTo(x,y); else faceCtx.lineTo(x,y);
+    });
+    faceCtx.stroke();
+  }
+}
 
 function faceScore(categories,name){
   return categories.find(x=>x.categoryName===name)?.score || 0;
@@ -975,8 +1043,10 @@ function processFace(){
     const result=faceRecognizer.detectForVideo(video,performance.now());
     if(!result?.faceLandmarks?.length){
       faceLabel.textContent='face: waiting';
+      clearFaceOverlay();
       return;
     }
+    drawFaceMesh(result.faceLandmarks[0]);
     const exp=classifyFace(result);
     faceLabel.textContent='face: '+exp;
 
@@ -1022,6 +1092,14 @@ async function loop(){
   }
 
   if(appSettings.mode !== 'hands') processFace();
+
+  if(reactionLockedUntil && performance.now() >= reactionLockedUntil){
+    reactionLockedUntil = 0;
+    lastTriggerKey = '';
+    lastGifGesture = '';
+    gifStatus.textContent = 'ready for next reaction';
+  }
+
   requestAnimationFrame(loop);
 }
 
