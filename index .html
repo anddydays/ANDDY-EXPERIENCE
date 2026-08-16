@@ -375,6 +375,18 @@ select,input[type="text"]{
 <style id="anddy-v21-code-leak-guard">
 pre.debug, code.debug, .source-dump, .code-dump { display:none !important; }
 </style>
+
+<style id="anddy-v23-clean-local-only">
+#customizePanel,#customizeOpen,.customize-panel,.panel-scrim,
+#cat,#gifReaction,.giphy-credit,#faceOverlay{
+  display:none !important;
+}
+#customReactionImage{
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#experienceMain">Skip to experience</a>
@@ -428,7 +440,7 @@ pre.debug, code.debug, .source-dump, .code-dump { display:none !important; }
 
     <div class="hint">
       FIST · THUMBS UP · WINK · LAUGH · OPEN MOUTH · HOLD HEAD<br>
-      Fixed local reactions only.
+      Local reactions only.
     </div>
   </div>
 </section>
@@ -452,14 +464,14 @@ const gifReaction = document.querySelector('#gifReaction');
 const gifStatus = document.querySelector('#gifStatus');
 const customReactionImage = document.querySelector('#customReactionImage');
 const faceLabel = document.querySelector('#faceLabel');
-const customizeOpen = document.querySelector('#customizeOpen');
-const customizePanel = document.querySelector('#customizePanel');
-const customizeClose = document.querySelector('#customizeClose');
-const panelScrim = document.querySelector('#panelScrim');
-const detectionMode = document.querySelector('#detectionMode');
-const reactionEditor = document.querySelector('#reactionEditor');
-const resetSettings = document.querySelector('#resetSettings');
-const rescanLocalCats = document.querySelector('#rescanLocalCats');
+
+
+
+
+
+
+
+
 const cameraControls = document.querySelector('#cameraControls');
 const cameraToggle = document.querySelector('#cameraToggle');
 
@@ -534,135 +546,10 @@ const HEAD_HOLD_MS = 650;
 
 const REACTION_HOLD_MS = 10000;
 
-const SETTINGS_KEY = 'anddy-experience-v6-settings';
-/* v18: reaction files are fixed in source code.
-   Existing saved reaction overrides are ignored; only detection mode remains customizable. */
+const appSettings = { mode:'both' };
 
-/* =========================================================
-   LOCAL CAT REACTIONS
-   Files expected inside: /gatos/
-   These take priority over GIPHY when a matching trigger exists.
-========================================================= */
-
-const LOCAL_CAT_LIBRARY = [
-  'gatos/gritando.jpg',
-  'gatos/nojado.jpg',
-  'gatos/puño.jpg',
-  'gatos/coqueto.jpg',
-  'gatos/jeje.jpg',
-  'gatos/duren.jpg',
-  'gatos/preocupado.jpg',
-  'gatos/serio .jpg',
-  'gatos/serio.jpg'
-];
-
-const AVAILABLE_LOCAL_CATS = new Map();
-
-function absoluteLocalPath(relativePath){
-  return new URL(relativePath, window.location.href).href;
-}
-
-async function scanLocalCatLibrary(){
-  AVAILABLE_LOCAL_CATS.clear();
-
-  const checks = LOCAL_CAT_LIBRARY.map(src => new Promise(resolve=>{
-    const img = new Image();
-    const absolute = absoluteLocalPath(src);
-
-    img.onload = () => {
-      AVAILABLE_LOCAL_CATS.set(src, absolute);
-      resolve({src, ok:true, absolute});
-    };
-
-    img.onerror = () => resolve({src, ok:false, absolute});
-    img.src = absolute;
-  }));
-
-  const results = await Promise.all(checks);
-  const found = results.filter(x=>x.ok);
-
-  console.table(results.map(x=>({
-    file:x.src,
-    status:x.ok ? 'FOUND' : 'MISSING',
-    url:x.absolute
-  })));
-
-  if(found.length){
-    gifStatus.textContent = `local library ready · ${found.length} images`;
-
-    // Default state is always serio.jpg.
-    await showLocalCatReaction('default');
-    gifStatus.textContent='default · serio';
-    return true;
-  }
-
-  gifStatus.textContent = 'NO LOCAL IMAGES FOUND · check /gatos folder on GitHub';
-  customReactionImage.classList.add('hidden');
-  return false;
-}
-
-const LOCAL_CAT_REACTIONS = {
-  'default':        ['gatos/serio.jpg', 'gatos/serio .jpg'],
-  'hand:fist':      ['gatos/puño.jpg'],
-  'hand:thumbsup':  ['gatos/duren.jpg'],
-  'face:surprise':  ['gatos/gritando.jpg'],
-  'face:wink':      ['gatos/coqueto.jpg'],
-  'face:laugh':     ['gatos/jeje.jpg'],
-  'pose:headhold':  ['gatos/preocupado.jpg']
-};
-
-let localReactionToken = 0;
-const LOCAL_CAT_STATUS = new Map();
-
-function preloadLocalCats(){
-  scanLocalCatLibrary();
-}
-preloadLocalCats();
-
-
-
-const DEFAULT_SETTINGS = {
-  mode:'both',
-  reactions:{
-    'hand:open':      {type:'gif', value:'open hand stop surprised reaction'},
-    'hand:fist':      {type:'sticker', value:'fist angry reaction'},
-    'hand:point':     {type:'gif', value:'pointing at you reaction'},
-    'hand:peace':     {type:'gif', value:'peace sign happy reaction'},
-    'hand:thumbsup':  {type:'gif', value:'thumbs up approval reaction'},
-    'hand:thumbsdown':{type:'gif', value:'thumbs down disappointed reaction'},
-    'hand:one':       {type:'gif', value:'one finger wait reaction'},
-    'hand:rock':      {type:'gif', value:'rock on hand gesture reaction'},
-    'hand:callme':    {type:'gif', value:'call me hand gesture reaction'},
-    'hand:middle':    {type:'gif', value:'rude funny reaction'},
-    'motion:wave':    {type:'gif', value:'waving hello reaction'},
-    'motion:swipeleft': {type:'gif', value:'swipe left nope reaction'},
-    'motion:swiperight':{type:'gif', value:'swipe right lets go reaction'},
-    'motion:openclose': {type:'sticker', value:'open close hand reaction'},
-    'face:smile':  {type:'gif', value:'smiling happy reaction'},
-    'face:surprise':{type:'sticker', value:'surprised shocked reaction'},
-    'face:blink':  {type:'gif', value:'wink reaction gif'},
-    'face:neutral':{type:'emoji', value:'😐'},
-    'face:worried':{type:'gif', value:'worried reaction'}
-  }
-};
-
-let appSettings = loadSettings();
-
-function loadSettings(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    return saved ? {
-      ...DEFAULT_SETTINGS,
-      ...saved,
-      reactions:{...DEFAULT_SETTINGS.reactions,...(saved.reactions||{})}
-    } : structuredClone(DEFAULT_SETTINGS);
-  }catch(e){
-    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  }
-}
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));
-}
+function loadSettings(){}
+function saveSettings(){}
 
 
 /* =========================================================
@@ -769,54 +656,48 @@ function reactionEndpoint(type){
 
 
 async function showLocalCatReaction(triggerKey){
-  const candidates = LOCAL_CAT_REACTIONS[triggerKey];
-  if(!candidates) return false;
+  const filename = LOCAL_CAT_REACTIONS[triggerKey];
+  if(!filename) return false;
 
-  const list = Array.isArray(candidates) ? candidates : [candidates];
+  const url = await loadFirstWorkingImage(localCatCandidates(filename));
 
+  if(!url){
+    customReactionImage.classList.add('hidden');
+    gifStatus.textContent = 'missing · ' + filename;
+    console.error('[ANDDY] Could not load local reaction:', filename);
+    return false;
+  }
+
+  ++localReactionToken;
   ++gifRequestToken;
+
   gifReaction.removeAttribute('src');
   gifReaction.classList.add('hidden');
   cat.classList.add('hidden');
 
-  for(const relative of list){
-    const absolute = new URL(relative, window.location.href).href;
-
-    const ok = await new Promise(resolve=>{
-      const probe = new Image();
-      probe.onload = ()=>resolve(true);
-      probe.onerror = ()=>resolve(false);
-      probe.src = absolute;
-    });
-
-    if(!ok) continue;
-
-    return await new Promise(resolve=>{
-      customReactionImage.onload=()=>{
-        customReactionImage.classList.remove('hidden');
-        gifStatus.textContent = triggerKey==='default'
-          ? 'default · serio'
-          : 'reaction · '+triggerKey.replace(':',' ');
-        resolve(true);
-      };
-      customReactionImage.onerror=()=>resolve(false);
-      customReactionImage.src=absolute;
-    });
-  }
-
-  customReactionImage.classList.add('hidden');
-  gifStatus.textContent='missing local image · '+triggerKey;
-  console.error('[ANDDY] Missing local reaction:', triggerKey, list);
-  return false;
+  return new Promise(resolve=>{
+    customReactionImage.onload=()=>{
+      customReactionImage.classList.remove('hidden');
+      gifStatus.textContent = triggerKey==='default'
+        ? 'default · serio'
+        : 'reaction · '+triggerKey.replace(':',' ');
+      resolve(true);
+    };
+    customReactionImage.onerror=()=>{
+      customReactionImage.classList.add('hidden');
+      resolve(false);
+    };
+    customReactionImage.src=url;
+  });
 }
 
 async function showConfiguredReaction(triggerKey){
-  const now = performance.now();
+  const now=performance.now();
   if(now < reactionLockedUntil) return;
   if(triggerKey === lastTriggerKey) return;
 
-  lastTriggerKey = triggerKey;
-  reactionLockedUntil = now + REACTION_HOLD_MS;
+  lastTriggerKey=triggerKey;
+  reactionLockedUntil=now + REACTION_HOLD_MS;
   await showLocalCatReaction(triggerKey);
 }
 
@@ -936,77 +817,8 @@ function triggerMotionReaction(name){
   showConfiguredReaction('motion:'+name);
 }
 
-async function fetchReactionGif(type){
-  if(!GIPHY_QUERIES[type]) return;
-
-  if(
-    !GIPHY_API_KEY ||
-    GIPHY_API_KEY === 'xkHDI2YzqBfT14Yu8uhiKHTXHMizq5uo'
-  ){
-    gifStatus.textContent='paste your GIPHY key to enable internet reactions';
-    return;
-  }
-
-  const token = ++gifRequestToken;
-  const queries = GIPHY_QUERIES[type];
-  const query = queries[Math.floor(Math.random()*queries.length)];
-
-  gifStatus.textContent='searching reaction...';
-
-  try{
-    const params = new URLSearchParams({
-      api_key:GIPHY_API_KEY,
-      q:query,
-      limit:'12',
-      rating:'g',
-      lang:'en',
-      bundle:'messaging_non_clips'
-    });
-
-    const res = await fetch(
-      `https://api.giphy.com/v1/gifs/search?${params.toString()}`
-    );
-
-    if(!res.ok) throw new Error(`GIPHY ${res.status}`);
-
-    const json = await res.json();
-    if(token !== gifRequestToken) return;
-
-    const items = Array.isArray(json.data) ? json.data : [];
-    if(!items.length){
-      gifStatus.textContent='no reaction found';
-      return;
-    }
-
-    const item = items[Math.floor(Math.random()*Math.min(items.length,8))];
-
-    const url =
-      item.images?.fixed_height?.url ||
-      item.images?.downsized_medium?.url ||
-      item.images?.original?.url;
-
-    if(!url){
-      gifStatus.textContent='reaction unavailable';
-      return;
-    }
-
-    gifReaction.onload=()=>{
-      if(token !== gifRequestToken) return;
-      cat.classList.add('hidden');
-      gifReaction.classList.remove('hidden');
-      gifStatus.textContent=query;
-    };
-
-    gifReaction.onerror=()=>{
-      gifStatus.textContent='could not load reaction';
-    };
-
-    gifReaction.src=url;
-
-  }catch(err){
-    console.error('GIPHY error:',err);
-    gifStatus.textContent='internet reaction unavailable';
-  }
+async function fetchReactionGif(){
+  return;
 }
 
 function react(type){
@@ -1361,7 +1173,7 @@ function stopCamera(){
   ++gifRequestToken;
   gifReaction.removeAttribute('src');
   gifReaction.classList.add('hidden');
-  cat.classList.remove('hidden');
+  cat.classList.add('hidden');
   gifStatus.textContent='camera off';
   lastGifGesture='';
   lastTriggerKey='';
@@ -1599,72 +1411,17 @@ async function loop(){
   if(appSettings.mode !== 'hands') processFace();
 
   if(reactionLockedUntil && performance.now() >= reactionLockedUntil){
-    reactionLockedUntil = 0;
-    lastTriggerKey = '';
-    lastGifGesture = '';
-    lastFaceExpression = '';
+    reactionLockedUntil=0;
+    lastTriggerKey='';
+    lastGifGesture='';
+    lastFaceExpression='';
     showLocalCatReaction('default');
-    gifStatus.textContent = 'default · serio';
+    gifStatus.textContent='default · serio';
   }
 
   requestAnimationFrame(loop);
 }
 
-
-const REACTION_LABELS = {
-  'hand:open':'✋ Open palm',
-  'hand:fist':'✊ Fist',
-  'hand:point':'👉 Point',
-  'hand:peace':'✌️ Peace',
-  'hand:thumbsup':'👍 Thumbs up',
-  'hand:thumbsdown':'👎 Thumbs down',
-  'hand:one':'☝️ One',
-  'hand:rock':'🤟 Rock / I love you',
-  'hand:callme':'🤙 Call me',
-  'hand:middle':'🖕 Middle finger',
-  'motion:wave':'👋 Wave',
-  'motion:swipeleft':'⬅️ Swipe left',
-  'motion:swiperight':'➡️ Swipe right',
-  'motion:openclose':'🫳 Open → Fist',
-  'face:smile':'🙂 Smile',
-  'face:surprise':'😮 Surprise',
-  'face:blink':'😉 Blink',
-  'face:neutral':'😐 Neutral',
-  'face:worried':'😟 Worried'
-};
-
-function renderReactionEditor(){ /* fixed local reactions */ }
-
-function setPanel(open){
-  customizePanel.classList.toggle('open',open);
-  panelScrim.classList.toggle('open',open);
-  customizePanel.setAttribute('aria-hidden',String(!open));
-  if(open)renderReactionEditor();
-}
-customizeOpen.addEventListener('click',()=>setPanel(true));
-customizeClose.addEventListener('click',()=>setPanel(false));
-panelScrim.addEventListener('click',()=>setPanel(false));
-detectionMode.addEventListener('change',()=>{
-  appSettings.mode=detectionMode.value;
-  saveSettings();
-  lastTriggerKey='';
-});
-
-rescanLocalCats?.addEventListener('click',async()=>{
-  rescanLocalCats.disabled=true;
-  rescanLocalCats.textContent='Scanning...';
-  await scanLocalCatLibrary();
-  rescanLocalCats.textContent='Rescan local cats';
-  rescanLocalCats.disabled=false;
-});
-
-resetSettings.addEventListener('click',()=>{
-  appSettings=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  saveSettings();
-  renderReactionEditor();
-  lastTriggerKey='';
-});
-renderReactionEditor();
 
 start.addEventListener('click',async()=>{
   start.disabled=true;
@@ -1702,65 +1459,12 @@ window.addEventListener('pagehide',()=>{
     stream.getTracks().forEach(track=>track.stop());
   }
 });
-</script>n && cameraEnabled){
-    running=true;
-    lastVideoTime=-1;
-    requestAnimationFrame(loop);
-  }
-});
-
-window.addEventListener('pagehide',()=>{
-  if(stream){
-    stream.getTracks().forEach(track=>track.stop());
-  }
-});
-</script>));
-  }
-});
 </script>
-
-<aside id="customizePanel" class="customize-panel" role="dialog" aria-modal="true" aria-label="Detection settings" aria-hidden="true">
-  <div class="customize-head">
-    <div>
-      <div class="eyebrow">ANDDY / CONTROL PANEL</div>
-      <h2>Detection settings</h2>
-    </div>
-    <button id="customizeClose" class="icon-button" type="button" aria-label="Close">×</button>
-  </div>
-
-  <div class="control-block">
-    <label for="detectionMode">Detection mode</label>
-    <select id="detectionMode">
-      <option value="both">Hands + Face</option>
-      <option value="hands">Hands only</option>
-      <option value="face">Face only</option>
-    </select>
-  </div>
-
-  <div class="control-block">
-    <div class="control-title">Reaction editor</div>
-    <div id="reactionEditor" class="reaction-editor"></div>
-  </div>
-
-  
-  <div class="control-actions">
-    <button id="rescanLocalCats" class="secondary-button" type="button">Rescan local cats</button>
-  </div>
-
-  <div class="control-actions">
-    <button id="resetSettings" class="secondary-button" type="button">Reset defaults</button>
-  </div>
-
-  <p class="storage-note">Settings and custom images are stored only in this browser.</p>
-</aside>
-<div id="panelScrim" class="panel-scrim"></div>
-
 
 <noscript>
   <div style="padding:18px;background:#111;color:#eee;font-family:Arial,sans-serif">
-    ANDDY EXPERIENCE requires JavaScript to use camera tracking and interactive reactions.
+    ANDDY EXPERIENCE requires JavaScript.
   </div>
 </noscript>
-
 </body>
 </html>
