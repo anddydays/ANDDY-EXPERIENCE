@@ -99,7 +99,7 @@ button{appearance:none;border:1px solid #666;background:#f2eee6;color:#111;borde
         <div id="gestureText" class="gesture">READY</div>
         <div id="reactionStatus" class="reaction-status">default · serio</div>
       </div>
-      <div class="hint">FIST · THUMBS UP · WINK · LAUGH · OPEN MOUTH · HOLD HEAD</div>
+      <div class="hint">FIST · THUMBS UP · WINK · LAUGH · OPEN MOUTH · HOLD HEAD · 5 SEC</div>
     </div>
   </section>
 </main>
@@ -131,8 +131,8 @@ const REACTIONS = {
   headHold: 'data:image/jpeg;base64,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'
 };
 
-const HOLD_MS = 10000;
-const FACE_HOLD_MS = 450;
+const HOLD_MS = 5000;
+const FACE_HOLD_MS = 280;
 const HAND_HOLD_MS = 350;
 const HEAD_HOLD_MS = 600;
 
@@ -265,19 +265,44 @@ function classifyFace(result){
   const cats = result?.faceBlendshapes?.[0]?.categories;
   if(!cats?.length) return 'neutral';
 
-  const smile = (faceScore(cats,'mouthSmileLeft') + faceScore(cats,'mouthSmileRight')) / 2;
-  const jaw = faceScore(cats,'jawOpen');
-  const blinkL = faceScore(cats,'eyeBlinkLeft');
-  const blinkR = faceScore(cats,'eyeBlinkRight');
-  const brow = (
-    faceScore(cats,'browInnerUp') +
-    faceScore(cats,'browOuterUpLeft') +
-    faceScore(cats,'browOuterUpRight')
-  ) / 3;
+  const score = name => faceScore(cats,name);
 
-  if((blinkL>.70 && blinkR<.35) || (blinkR>.70 && blinkL<.35)) return 'wink';
-  if(smile>.50 && jaw>.20) return 'laugh';
-  if(jaw>.46 && smile<.42 && brow>.08) return 'surprise';
+  const smileL = score('mouthSmileLeft');
+  const smileR = score('mouthSmileRight');
+  const smile = (smileL + smileR) / 2;
+
+  const jaw = score('jawOpen');
+  const blinkL = score('eyeBlinkLeft');
+  const blinkR = score('eyeBlinkRight');
+
+  const browInner = score('browInnerUp');
+  const browOuter = (score('browOuterUpLeft') + score('browOuterUpRight')) / 2;
+  const brow = Math.max(browInner,browOuter);
+
+  /*
+    More forgiving thresholds:
+    - wink: one eye clearly more closed than the other
+    - laugh: smile + some mouth opening
+    - surprise: mouth open without a strong smile
+  */
+
+  const winkDelta = Math.abs(blinkL - blinkR);
+  if(
+    Math.max(blinkL,blinkR) > .52 &&
+    Math.min(blinkL,blinkR) < .38 &&
+    winkDelta > .28
+  ){
+    return 'wink';
+  }
+
+  if(smile > .34 && jaw > .12){
+    return 'laugh';
+  }
+
+  if(jaw > .32 && smile < .40 && brow > .05){
+    return 'surprise';
+  }
+
   return 'neutral';
 }
 
@@ -352,17 +377,26 @@ async function initDetectors(){
     handLandmarker = await vision.HandLandmarker.createFromOptions(resolver,handOptions);
   }
 
-  faceLandmarker = await vision.FaceLandmarker.createFromOptions(resolver,{
+  const faceOptions = {
     baseOptions:{
-      modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+      modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+      delegate:'GPU'
     },
     runningMode:'VIDEO',
     numFaces:1,
     outputFaceBlendshapes:true,
-    minFaceDetectionConfidence:.5,
-    minFacePresenceConfidence:.5,
-    minTrackingConfidence:.5
-  });
+    minFaceDetectionConfidence:.4,
+    minFacePresenceConfidence:.4,
+    minTrackingConfidence:.4
+  };
+
+  try{
+    faceLandmarker = await vision.FaceLandmarker.createFromOptions(resolver,faceOptions);
+  }catch(err){
+    console.warn('GPU face detector failed, using default delegate',err);
+    delete faceOptions.baseOptions.delegate;
+    faceLandmarker = await vision.FaceLandmarker.createFromOptions(resolver,faceOptions);
+  }
 
   detectorsReady=true;
   handLabel.textContent='READY';
@@ -462,13 +496,15 @@ function processFace(){
 
   try{
     const result=faceLandmarker.detectForVideo(video,performance.now());
+
     if(!result?.faceLandmarks?.length){
       latestFaceLandmarks=null;
-      faceLabel.textContent='face: waiting';
+      faceLabel.textContent='face: searching';
       return;
     }
 
     latestFaceLandmarks=result.faceLandmarks[0];
+
     const exp=classifyFace(result);
     const now=performance.now();
 
@@ -481,10 +517,15 @@ function processFace(){
 
     if(now < reactionLockedUntil) return;
 
-    if(['wink','laugh','surprise'].includes(exp) && now-faceCandidateSince>=FACE_HOLD_MS){
+    if(
+      ['wink','laugh','surprise'].includes(exp) &&
+      now-faceCandidateSince>=FACE_HOLD_MS
+    ){
       triggerReaction(exp);
     }
+
   }catch(err){
+    faceLabel.textContent='face: error';
     console.warn('Face detection error',err);
   }
 }
