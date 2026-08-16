@@ -55,6 +55,42 @@ button{appearance:none;border:1px solid #666;background:#f2eee6;color:#111;borde
   .privacy{left:12px;bottom:12px;max-width:75vw;font-size:9px}
   .info-chip{left:12px;top:12px;font-size:8px}
 }
+
+/* --- ANDDY framing assist --- */
+.framing-assist{
+  position:absolute; inset:0; z-index:7; pointer-events:none;
+  display:flex; align-items:center; justify-content:center;
+  transition:opacity .35s ease;
+}
+.framing-assist.ready{opacity:.24}
+.framing-head{
+  position:absolute; left:50%; top:45%; width:min(25vw,230px);
+  aspect-ratio:.78; transform:translate(-50%,-50%);
+  border:1px dashed rgba(255,255,255,.42);
+  border-radius:48% 48% 44% 44% / 42% 42% 54% 54%;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.025);
+}
+.framing-hand{
+  position:absolute; top:39%; width:86px; height:150px;
+  border:1px dashed rgba(255,255,255,.20); border-radius:50%;
+}
+.framing-hand.left{left:17%; transform:rotate(-8deg)}
+.framing-hand.right{right:17%; transform:rotate(8deg)}
+.framing-status{
+  position:absolute; left:50%; bottom:8%; transform:translateX(-50%);
+  padding:9px 13px; border:1px solid rgba(255,255,255,.18);
+  border-radius:999px; background:rgba(8,8,8,.55); backdrop-filter:blur(12px);
+  color:#ddd; font:700 9px Arial,sans-serif; letter-spacing:.12em;
+  text-transform:uppercase; white-space:nowrap;
+}
+.framing-status.good{border-color:rgba(180,255,160,.35)}
+@media(max-width:760px){
+  .framing-head{width:38vw;top:42%}
+  .framing-hand{width:58px;height:110px;top:38%}
+  .framing-hand.left{left:7%}.framing-hand.right{right:7%}
+  .framing-status{bottom:6%;font-size:8px}
+}
+
 </style>
 
 <style id="gesture-guide-style">
@@ -96,6 +132,12 @@ button{appearance:none;border:1px solid #666;background:#f2eee6;color:#111;borde
     <div class="camera-wrap">
       <video id="camera" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
+        <div id="framingAssist" class="framing-assist">
+          <div class="framing-head"></div>
+          <div class="framing-hand left"></div>
+          <div class="framing-hand right"></div>
+          <div id="framingStatus" class="framing-status">Center your face</div>
+        </div>
 
       <div class="info-chip">LOCAL CAMERA PROCESSING · HAND + FACE</div>
       <button id="gesturesTab" class="gestures-tab" type="button">Gestures</button>
@@ -316,7 +358,44 @@ function faceScore(categories,name){
   return categories.find(x=>x.categoryName===name)?.score || 0;
 }
 
+
+function updateFramingAssist(faceLandmarks, handsCount=0){
+  if(!framingStatus || !framingAssist || !cameraEnabled) return;
+
+  if(!faceLandmarks || !faceLandmarks.length){
+    framingStatus.textContent='CENTER YOUR FACE';
+    framingStatus.classList.remove('good');
+    framingAssist.classList.remove('ready');
+    return;
+  }
+
+  let minX=1,maxX=0,minY=1,maxY=0;
+  for(const p of faceLandmarks){
+    if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x;
+    if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y;
+  }
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  const fw=maxX-minX, fh=maxY-minY;
+
+  let message='GOOD POSITION ✓';
+  let good=true;
+
+  if(fw > .34 || fh > .48){ message='MOVE BACK A LITTLE'; good=false; }
+  else if(fw < .13 || fh < .19){ message='MOVE CLOSER'; good=false; }
+  else if(cx < .38){ message='MOVE RIGHT'; good=false; }
+  else if(cx > .62){ message='MOVE LEFT'; good=false; }
+  else if(cy < .27){ message='MOVE DOWN'; good=false; }
+  else if(cy > .62){ message='MOVE UP'; good=false; }
+  else if(handsCount===1){ message='GOOD · SHOW BOTH HANDS FOR 2-HAND GESTURES'; }
+  else if(handsCount>=2){ message='GOOD POSITION ✓ · BOTH HANDS VISIBLE'; }
+
+  framingStatus.textContent=message;
+  framingStatus.classList.toggle('good',good);
+  framingAssist.classList.toggle('ready',good);
+}
+
 function analyzeFace(result){
+  updateFramingAssist(result, 0);
   const cats=result?.faceBlendshapes?.[0]?.categories;
   const lm=result?.faceLandmarks?.[0];
   if(!cats?.length || !lm?.length){
@@ -545,6 +624,8 @@ async function startCamera(){
 }
 
 function stopCamera(){
+  if(framingStatus){ framingStatus.textContent='CENTER YOUR FACE'; framingStatus.classList.remove('good'); }
+  framingAssist?.classList.remove('ready');
   running=false;
   cameraEnabled=false;
 
