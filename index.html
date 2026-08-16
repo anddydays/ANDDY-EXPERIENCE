@@ -1,122 +1,250 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Camera Cat — Liquid Glass</title>
-<meta name="description" content="Browser adaptation of the original Hammyhamster gesture-reactive camera experience.">
-<meta name="theme-color" content="#b8c7dc">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Camera Cat</title>
+<meta name="theme-color" content="#a9bfd8" />
 <style>
 :root{
   --ink:#f8fbff;
-  --muted:rgba(238,246,255,.62);
-  --line:rgba(255,255,255,.25);
-  --glass:rgba(216,232,250,.12);
-  --glass-strong:rgba(220,235,252,.20);
-  --shadow:0 28px 80px rgba(0,18,48,.23);
-  --blur:28px;
+  --muted:rgba(245,250,255,.64);
+  --line:rgba(255,255,255,.32);
+  --glass:rgba(232,242,255,.14);
+  --glass-strong:rgba(230,241,255,.22);
+  --shadow:0 28px 80px rgba(20,48,80,.22);
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#9fb1c9;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
-body{min-height:100svh;overflow-x:hidden;background:
-  radial-gradient(circle at 16% 10%,rgba(255,255,255,.72),transparent 24%),
-  radial-gradient(circle at 78% 12%,rgba(185,214,246,.72),transparent 30%),
-  radial-gradient(circle at 62% 78%,rgba(153,185,225,.70),transparent 38%),
-  linear-gradient(135deg,#8fa6c1 0%,#b7c7d9 42%,#7f9cbd 100%);
+html,body{
+  margin:0;
+  width:100%;
+  min-height:100%;
+  background:#91a9c4;
+  color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
+}
+body{
+  min-height:100svh;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 12% 8%,rgba(255,255,255,.75),transparent 24%),
+    radial-gradient(circle at 84% 18%,rgba(217,235,255,.7),transparent 30%),
+    radial-gradient(circle at 56% 86%,rgba(122,163,209,.48),transparent 40%),
+    linear-gradient(135deg,#9fb6ce 0%,#c3d2e3 45%,#86a5c7 100%);
 }
 body::before{
-  content:"";position:fixed;inset:-15%;pointer-events:none;z-index:0;
+  content:"";
+  position:fixed;
+  inset:-20%;
+  pointer-events:none;
   background:
-    radial-gradient(circle at 30% 34%,rgba(255,255,255,.46),transparent 18%),
-    radial-gradient(circle at 72% 42%,rgba(243,249,255,.28),transparent 22%),
-    radial-gradient(circle at 55% 85%,rgba(105,151,208,.25),transparent 25%);
-  filter:blur(70px);animation:floatBg 18s ease-in-out infinite alternate;
+    radial-gradient(circle at 25% 30%,rgba(255,255,255,.38),transparent 22%),
+    radial-gradient(circle at 75% 42%,rgba(255,255,255,.2),transparent 28%);
+  filter:blur(75px);
+  animation:floatBg 17s ease-in-out infinite alternate;
 }
-@keyframes floatBg{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2%,1%,0) scale(1.06)}}
+@keyframes floatBg{
+  from{transform:translate3d(-1.5%,-1%,0) scale(1)}
+  to{transform:translate3d(2%,1.5%,0) scale(1.05)}
+}
 a{color:inherit;text-decoration:none}
-button{font:inherit}
-.shell{position:relative;z-index:1;min-height:100svh;padding:18px}
+.shell{position:relative;z-index:1;height:100svh;padding:16px;display:flex;flex-direction:column;gap:14px}
 .glass{
-  background:linear-gradient(135deg,rgba(255,255,255,.21),rgba(255,255,255,.075));
-  border:1px solid rgba(255,255,255,.31);
-  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(255,255,255,.08);
-  backdrop-filter:blur(var(--blur)) saturate(145%);
-  -webkit-backdrop-filter:blur(var(--blur)) saturate(145%);
+  background:linear-gradient(135deg,rgba(255,255,255,.23),rgba(255,255,255,.08));
+  border:1px solid var(--line);
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.42);
+  backdrop-filter:blur(28px) saturate(145%);
+  -webkit-backdrop-filter:blur(28px) saturate(145%);
 }
 .topbar{
-  min-height:62px;border-radius:26px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
-  gap:14px;padding:10px 13px 10px 20px;margin-bottom:16px;
+  min-height:66px;
+  border-radius:28px;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  padding:9px 13px 9px 20px;
 }
-.brand{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;text-shadow:0 1px 16px rgba(0,0,0,.12)}
-.sensor-strip{display:flex;gap:7px;align-items:center;justify-content:center}
+.brand{
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.center-status{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
 .pill{
-  display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border-radius:999px;
-  border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.08);
-  color:rgba(255,255,255,.82);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:34px;
+  padding:0 13px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.8);
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.13em;
+  text-transform:uppercase;
 }
-.pill-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.42);box-shadow:0 0 0 rgba(255,255,255,0)}
-.pill.live .pill-dot{background:#eafff2;box-shadow:0 0 14px rgba(231,255,239,.95)}
-.top-actions{justify-self:end;display:flex;gap:8px}
-.glass-btn{
-  appearance:none;border:1px solid rgba(255,255,255,.30);border-radius:999px;padding:10px 14px;
-  color:#fff;background:rgba(255,255,255,.10);cursor:pointer;font-size:9px;font-weight:700;
-  letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(18px);transition:.25s ease;
+.dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#effff4;
+  box-shadow:0 0 14px rgba(235,255,242,.9);
 }
-.glass-btn:hover{background:rgba(255,255,255,.19);transform:translateY(-1px)}
-.main-grid{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(320px,.58fr);gap:16px;min-height:calc(100svh - 114px)}
-.camera-card,.reaction-card{position:relative;border-radius:34px;overflow:hidden;min-height:620px}
-.camera-stage{position:absolute;inset:0;background:rgba(16,35,62,.18)}
-#camera,#handCanvas,#poseCanvas{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)
+.actions{justify-self:end}
+.portfolio{
+  display:inline-flex;
+  height:36px;
+  align-items:center;
+  padding:0 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.08);
+  font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
 }
-#camera{z-index:1;background:#13233a}
-#poseCanvas{z-index:2;pointer-events:none}
-#handCanvas{z-index:3;pointer-events:none}
-.camera-sheen{
-  position:absolute;inset:0;z-index:4;pointer-events:none;
-  background:linear-gradient(130deg,rgba(255,255,255,.19),transparent 22%,transparent 68%,rgba(255,255,255,.07));
+.workspace{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(320px,.58fr);
+  gap:14px;
 }
-.corner-label{position:absolute;z-index:7;top:18px;left:18px}
-.debug-panel{
-  position:absolute;z-index:7;left:18px;bottom:18px;width:min(520px,calc(100% - 36px));
-  padding:13px 15px;border-radius:19px;color:rgba(250,253,255,.74);font-size:10px;line-height:1.5;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+.camera-panel,.reaction-panel{
+  position:relative;
+  min-height:0;
+  overflow:hidden;
+  border-radius:34px;
 }
-.start-layer{
-  position:absolute;z-index:8;inset:0;display:grid;place-items:center;padding:24px;
-  background:radial-gradient(circle at center,rgba(13,36,66,.08),rgba(8,26,51,.18));
+.camera-panel{
+  background:rgba(35,62,91,.42);
 }
-.start-layer.hidden{display:none}
-.start-card{width:min(500px,88%);padding:34px;border-radius:32px;text-align:center}
-.start-card .eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
-.start-card h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(48px,7vw,88px);font-weight:400;letter-spacing:-.055em;line-height:.87;margin:0 0 18px}
-.start-card p{color:rgba(247,251,255,.66);font-size:12px;line-height:1.6;max-width:370px;margin:0 auto 24px}
-.start-main{background:rgba(255,255,255,.88);color:#35506e;border-color:rgba(255,255,255,.92);padding:13px 20px}
-.reaction-card{display:flex;flex-direction:column;padding:16px}
-.reaction-head{display:flex;align-items:center;justify-content:space-between;padding:5px 5px 15px}
-.reaction-head .label{font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted)}
-.vote{font:700 9px ui-monospace,monospace;color:rgba(255,255,255,.66)}
-.meme-wrap{
-  position:relative;flex:1;min-height:0;border-radius:27px;overflow:hidden;
-  border:1px solid rgba(255,255,255,.22);background:rgba(14,32,57,.17);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+#video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+  background:#1c3651;
 }
-#meme{width:100%;height:100%;object-fit:contain;display:block;background:rgba(18,35,58,.12)}
-.meme-gloss{position:absolute;inset:0;pointer-events:none;background:linear-gradient(145deg,rgba(255,255,255,.13),transparent 24%,transparent 78%,rgba(255,255,255,.04))}
-.reaction-meta{padding:18px 6px 6px}
-.reaction-name{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,4vw,58px);line-height:.92;letter-spacing:-.045em;text-transform:capitalize}
-.reaction-file{margin-top:8px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.gesture-guide{margin-top:15px;padding:14px;border-radius:23px}
-.gesture-guide h3{margin:0 0 10px;font-size:9px;letter-spacing:.16em;text-transform:uppercase}
-.gesture-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.gesture-item{padding:9px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.17);background:rgba(255,255,255,.055);font-size:9px;color:rgba(255,255,255,.72)}
-.gesture-item strong{color:#fff;font-size:10px}
+.camera-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.12),transparent 21%,transparent 72%,rgba(255,255,255,.05)),
+    linear-gradient(to top,rgba(26,53,82,.16),transparent 28%);
+}
+.camera-label{
+  position:absolute;
+  top:18px;
+  left:18px;
+  z-index:4;
+}
+#debugHud{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:18px;
+  z-index:5;
+  min-height:38px;
+  max-height:118px;
+  overflow:auto;
+  white-space:pre-wrap;
+  color:rgba(248,252,255,.78);
+  font:9px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  padding:11px 13px;
+  border-radius:18px;
+  background:rgba(224,239,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.reaction-panel{
+  padding:15px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.reaction-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:36px;
+}
+.reaction-title,.reaction-note{
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.reaction-note{color:var(--muted)}
+.meme-frame{
+  flex:1;
+  min-height:0;
+  border-radius:27px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.27);
+  background:rgba(44,72,101,.15);
+  position:relative;
+}
+#memeImg{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  background:rgba(35,61,89,.16);
+}
+.meme-frame::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),transparent 24%,transparent 80%,rgba(255,255,255,.04));
+}
+.bottom-copy{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:15px;
+  padding:0 4px 3px;
+}
+.bottom-copy h1{
+  margin:0;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(34px,4vw,58px);
+  line-height:.84;
+  letter-spacing:-.055em;
+  font-weight:400;
+}
+.bottom-copy p{
+  margin:0;
+  max-width:150px;
+  text-align:right;
+  color:var(--muted);
+  font-size:8px;
+  line-height:1.45;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
 @media(max-width:900px){
-  .topbar{grid-template-columns:1fr auto}.sensor-strip{display:none}.main-grid{grid-template-columns:1fr}.camera-card{min-height:64svh}.reaction-card{min-height:580px}
+  body{overflow:auto}
+  .shell{height:auto;min-height:100svh}
+  .topbar{grid-template-columns:1fr auto}.center-status{display:none}
+  .workspace{grid-template-columns:1fr;grid-template-rows:62svh 48svh}
+  .camera-panel,.reaction-panel{border-radius:28px}
 }
-@media(max-width:600px){
-  .shell{padding:10px}.topbar{border-radius:22px}.brand{font-size:9px}.camera-card,.reaction-card{border-radius:27px}
-  .top-actions .glass-btn:first-child{display:none}.gesture-grid{grid-template-columns:1fr}.debug-panel{font-size:8px}
+@media(max-width:560px){
+  .shell{padding:9px;gap:9px}
+  .topbar{min-height:58px;border-radius:22px;padding-left:14px}
+  .brand{font-size:8px}
+  .portfolio{height:32px;padding:0 11px;font-size:7px}
+  .workspace{gap:9px}
+  #debugHud{left:12px;right:12px;bottom:12px;font-size:8px}
 }
 @media(prefers-reduced-motion:reduce){body::before{animation:none}}
 </style>
@@ -124,435 +252,45 @@ button{font:inherit}
 <body>
 <div class="shell">
   <header class="topbar glass">
-    <div class="brand">Camera Cat / Original Hammyhamster Logic</div>
-    <div class="sensor-strip">
-      <span id="handPill" class="pill"><i class="pill-dot"></i>Hands</span>
-      <span id="facePill" class="pill"><i class="pill-dot"></i>Face</span>
-      <span id="posePill" class="pill"><i class="pill-dot"></i>Pose</span>
+    <div class="brand">Camera Cat / Original Detector</div>
+    <div class="center-status">
+      <span class="pill"><i class="dot"></i>Hand + Face Tracking</span>
+      <span class="pill">5 Frame Stabilization</span>
     </div>
-    <div class="top-actions">
-      <a class="glass-btn" href="https://anddydays.github.io/">Portfolio</a>
-      <button id="cameraToggle" class="glass-btn" type="button">Camera off</button>
+    <div class="actions">
+      <a class="portfolio" href="https://anddydays.github.io/">Portfolio</a>
     </div>
   </header>
 
-  <main class="main-grid">
-    <section class="camera-card glass">
-      <div class="camera-stage">
-        <video id="camera" autoplay muted playsinline></video>
-        <canvas id="poseCanvas"></canvas>
-        <canvas id="handCanvas"></canvas>
-        <div class="camera-sheen"></div>
-
-        <div class="corner-label pill"><i class="pill-dot"></i>Live gesture sensor</div>
-
-        <div id="debug" class="debug-panel glass">
-          raw=default · stable=default · yaw=n/a · votes=0/12
-        </div>
-
-        <div id="startLayer" class="start-layer">
-          <div class="start-card glass">
-            <div class="eyebrow">Original Hammyhamster gesture system</div>
-            <h1>Show me<br>something.</h1>
-            <p>Camera Cat reads your hands, face direction and upper-body pose. The reaction only changes after the original 12-frame voting system confirms the gesture.</p>
-            <button id="start" class="glass-btn start-main" type="button">Start camera</button>
-          </div>
-        </div>
-      </div>
+  <main class="workspace">
+    <section class="camera-panel glass">
+      <!-- IMPORTANT: these exact IDs are required by the original app.js -->
+      <video id="video" playsinline muted autoplay></video>
+      <div class="camera-overlay"></div>
+      <div class="camera-label pill">01 / Camera</div>
+      <div id="debugHud">Starting original detector…</div>
     </section>
 
-    <aside class="reaction-card glass">
+    <aside class="reaction-panel glass">
       <div class="reaction-head">
-        <span class="label">Hamster reaction</span>
-        <span id="voteLabel" class="vote">0 / 12</span>
+        <span class="reaction-title">02 / Cat Reaction</span>
+        <span class="reaction-note">Original Memes</span>
       </div>
 
-      <div class="meme-wrap">
-        <img id="meme" src="images/pokerham.jpg" alt="Hamster reaction">
-        <div class="meme-gloss"></div>
+      <div class="meme-frame">
+        <!-- IMPORTANT: this exact ID is required by the original app.js -->
+        <img id="memeImg" src="memes/pokercat.jpg" alt="Cat reaction" />
       </div>
 
-      <div class="reaction-meta">
-        <div id="reactionName" class="reaction-name">Default</div>
-        <div id="reactionFile" class="reaction-file">pokerham.jpg</div>
-      </div>
-
-      <div class="gesture-guide glass">
-        <h3>Original gestures</h3>
-        <div class="gesture-grid">
-          <div class="gesture-item"><strong>👍 Thumbs up</strong><br>Away from face</div>
-          <div class="gesture-item"><strong>👎 Thumbs down</strong><br>Away from face</div>
-          <div class="gesture-item"><strong>✊ Fist by head</strong><br>Closed hand beside face</div>
-          <div class="gesture-item"><strong>🤏 Pinch near face</strong><br>Glasses hamster</div>
-          <div class="gesture-item"><strong>☝ Finger by mouth</strong><br>Index fingertip near mouth</div>
-          <div class="gesture-item"><strong>☝ Pointer</strong><br>Index up away from mouth</div>
-          <div class="gesture-item"><strong>💪 Bicep</strong><br>Bent elbow + raised wrist</div>
-          <div class="gesture-item"><strong>🙅 Cross arms</strong><br>Wrists tucked at chest</div>
-          <div class="gesture-item"><strong>🙌 Two hands</strong><br>Both visible, no stronger match</div>
-          <div class="gesture-item"><strong>↪ Head turn</strong><br>Turn face to the side</div>
-        </div>
+      <div class="bottom-copy">
+        <h1>Camera<br>Cat.</h1>
+        <p>Make a gesture. The original detector chooses the cat.</p>
       </div>
     </aside>
   </main>
 </div>
 
-<script type="module">
-const MEMES={
-  default:"images/pokerham.jpg",
-  thumbs_up:"images/thumb.jpg",
-  thumbs_down:"images/thumbs down.jpg",
-  side_eye:"images/sideyee.jpg",
-  fist_by_head:"images/happylollypop.webp",
-  two_hands:"images/2 arms out .jpg",
-  glasses:"images/discord mod.jpg",
-  bicep:"images/bicep.jpg",
-  cross_arms:"images/cross arms .jpg",
-  finger_mouth:"images/one finger mouth .jpg",
-  nerd:"images/nerd.jpg"
-};
-
-// Original Python thresholds.
-const YAW_THRESHOLD_DEG=18;
-const VOTE_WINDOW=12;
-const VOTE_MAJORITY=7;
-const GLASSES_NEAR_FACE_DIST=.28;
-const MOUTH_NEAR_DIST=.14;
-const ELBOW_BEND_MAX_DEG=100;
-const POSE_VISIBILITY_MIN=.5;
-const MOUTH_LANDMARK=13;
-
-const video=document.querySelector("#camera");
-const handCanvas=document.querySelector("#handCanvas");
-const poseCanvas=document.querySelector("#poseCanvas");
-const handCtx=handCanvas.getContext("2d");
-const poseCtx=poseCanvas.getContext("2d");
-const startBtn=document.querySelector("#start");
-const startLayer=document.querySelector("#startLayer");
-const cameraToggle=document.querySelector("#cameraToggle");
-const meme=document.querySelector("#meme");
-const reactionName=document.querySelector("#reactionName");
-const reactionFile=document.querySelector("#reactionFile");
-const debug=document.querySelector("#debug");
-const voteLabel=document.querySelector("#voteLabel");
-const handPill=document.querySelector("#handPill");
-const facePill=document.querySelector("#facePill");
-const posePill=document.querySelector("#posePill");
-
-let stream=null,running=false;
-let handLandmarker=null,faceLandmarker=null,poseLandmarker=null;
-let lastVideoTime=-1,frameIndex=0;
-let stableGesture="default";
-const votes=[];
-
-const HAND_CONNECTIONS=[
- [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
- [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]
-];
-const POSE_CONNECTIONS=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24]];
-
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function center(lms){
-  let x=0,y=0;
-  for(const p of lms){x+=p.x;y+=p.y}
-  return {x:x/lms.length,y:y/lms.length};
-}
-function fingersUp(lms){
-  const wrist=lms[0],pinkyBase=lms[17];
-  const thumbExtended=dist(lms[4],pinkyBase)>dist(lms[2],pinkyBase)*1.1;
-  const fingers=[thumbExtended?1:0];
-  for(const [tip,base] of [[8,5],[12,9],[16,13],[20,17]]){
-    fingers.push(dist(wrist,lms[tip])>dist(wrist,lms[base])*1.15?1:0);
-  }
-  return fingers;
-}
-function classifySingleHand(f){
-  const [thumb,index,middle,ring,pinky]=f;
-  const fourCurled=!(index||middle||ring||pinky);
-  if(fourCurled) return thumb?"thumbs_up":"fist";
-  if(index&&middle&&ring&&pinky&&thumb) return "open_palm";
-  if(index&&!middle&&!ring&&!pinky) return "pointer";
-  return null;
-}
-function thumbDyRatio(lms){
-  const scale=dist(lms[0],lms[9]);
-  return scale<1e-6?0:(lms[4].y-lms[0].y)/scale;
-}
-function thumbPointsDown(lms){return thumbDyRatio(lms)>.35}
-function pinchDistRatio(lms){
-  const scale=dist(lms[0],lms[9]);
-  return scale<1e-6?999:dist(lms[4],lms[8])/scale;
-}
-function isPinch(lms){
-  const scale=dist(lms[0],lms[9]);
-  if(scale<1e-6)return false;
-  const ti=dist(lms[4],lms[8]),tm=dist(lms[4],lms[12]);
-  return ti<scale*.5&&ti<tm*.7;
-}
-function poseVisible(p){return (p?.visibility??1)>=POSE_VISIBILITY_MIN}
-function elbowAngle(s,e,w){
-  const a={x:s.x-e.x,y:s.y-e.y},b={x:w.x-e.x,y:w.y-e.y};
-  const n1=Math.hypot(a.x,a.y),n2=Math.hypot(b.x,b.y);
-  if(n1<1e-6||n2<1e-6)return null;
-  const c=Math.max(-1,Math.min(1,(a.x*b.x+a.y*b.y)/(n1*n2)));
-  return Math.acos(c)*180/Math.PI;
-}
-function bicepSignals(pose){
-  if(!pose)return null;
-  let best=null;
-  for(const [sI,eI,wI] of [[11,13,15],[12,14,16]]){
-    const s=pose[sI],e=pose[eI],w=pose[wI];
-    if(!poseVisible(s)||!poseVisible(e)||!poseVisible(w))continue;
-    const angle=elbowAngle(s,e,w);if(angle===null)continue;
-    const signal=[angle,s.y-w.y,Math.abs(e.x-s.x)];
-    if(!best||angle<best[0])best=signal;
-  }
-  return best;
-}
-function detectBicep(pose){
-  const s=bicepSignals(pose);if(!s)return false;
-  return s[0]<ELBOW_BEND_MAX_DEG&&s[1]>.06&&s[2]>.06;
-}
-function detectCrossArms(pose){
-  if(!pose)return false;
-  const lw=pose[15],rw=pose[16],ls=pose[11],rs=pose[12];
-  if(!poseVisible(lw)||!poseVisible(rw)||!poseVisible(ls)||!poseVisible(rs))return false;
-  const lh=pose[23],rh=pose[24];
-  const chestTop=Math.min(ls.y,rs.y);
-  const chestBottom=(poseVisible(lh)&&poseVisible(rh))?Math.max(lh.y,rh.y):chestTop+.35;
-  const wristsClose=dist(lw,rw)<.18;
-  const avgY=(lw.y+rw.y)/2;
-  return wristsClose&&chestTop<avgY&&avgY<chestBottom;
-}
-function matrixYawDeg(matrix){
-  const data=matrix?.data || matrix;
-  if(!data)return null;
-  let r02=null;
-  if(Array.isArray(data[0])) r02=data[0][2];
-  else if(data.length>=16) r02=data[2];
-  if(typeof r02!=="number")return null;
-  return Math.asin(Math.max(-1,Math.min(1,r02)))*180/Math.PI;
-}
-function fallbackYaw(face){
-  if(!face?.length)return null;
-  const l=face[33],r=face[263],nose=face[1];
-  const mid=(l.x+r.x)/2,span=Math.max(.03,Math.abs(r.x-l.x));
-  return ((nose.x-mid)/span)*42;
-}
-
-function classifyGesture(handResult,faceResult,poseResult){
-  const hands=handResult?.landmarks||[];
-  const pose=poseResult?.landmarks?.[0]||null;
-  let headCenter={x:.5,y:.3},mouth=null,yaw=null;
-
-  if(faceResult?.faceLandmarks?.length){
-    const face=faceResult.faceLandmarks[0];
-    headCenter=center(face);
-    mouth={x:face[MOUTH_LANDMARK].x,y:face[MOUTH_LANDMARK].y};
-    yaw=fallbackYaw(face);
-  }
-  const matrices=faceResult?.facialTransformationMatrixes;
-  if(matrices?.length){
-    const transformed=matrixYawDeg(matrices[0]);
-    if(transformed!==null)yaw=transformed;
-  }
-
-  for(const lms of hands){
-    const hc=center(lms);
-
-    if(isPinch(lms)){
-      if(Math.hypot(hc.x-headCenter.x,hc.y-headCenter.y)<GLASSES_NEAR_FACE_DIST)
-        return {gesture:"glasses",yaw,hands,pose};
-      continue;
-    }
-
-    const fingers=fingersUp(lms);
-    const gesture=classifySingleHand(fingers);
-
-    if(gesture==="fist"||gesture==="thumbs_up"){
-      const besideHead=Math.abs(hc.y-headCenter.y)<.15 &&
-        Math.abs(hc.x-headCenter.x)>.08 && Math.abs(hc.x-headCenter.x)<.30;
-      if(besideHead)return {gesture:"fist_by_head",yaw,hands,pose};
-      if(gesture==="thumbs_up")
-        return {gesture:thumbPointsDown(lms)?"thumbs_down":"thumbs_up",yaw,hands,pose};
-      continue;
-    }
-
-    if(gesture==="pointer"){
-      const tip=lms[8];
-      const nearMouth=mouth&&Math.hypot(tip.x-mouth.x,tip.y-mouth.y)<MOUTH_NEAR_DIST;
-      return {gesture:nearMouth?"finger_mouth":"nerd",yaw,hands,pose};
-    }
-  }
-
-  if(detectCrossArms(pose))return {gesture:"cross_arms",yaw,hands,pose};
-  if(detectBicep(pose))return {gesture:"bicep",yaw,hands,pose};
-  if(hands.length===2)return {gesture:"two_hands",yaw,hands,pose};
-  if(yaw!==null&&Math.abs(yaw)>YAW_THRESHOLD_DEG)return {gesture:"side_eye",yaw,hands,pose};
-  return {gesture:"default",yaw,hands,pose};
-}
-
-function updateVote(raw){
-  votes.push(raw);
-  while(votes.length>VOTE_WINDOW)votes.shift();
-  const counts={};
-  for(const v of votes)counts[v]=(counts[v]||0)+1;
-  let top="default",count=0;
-  for(const [g,c] of Object.entries(counts)){if(c>count){top=g;count=c}}
-  if(count>=VOTE_MAJORITY)stableGesture=top;
-  return {top,count};
-}
-function showMeme(key){
-  const path=MEMES[key]||MEMES.default;
-  if(meme.getAttribute("src")!==path)meme.src=path;
-  reactionName.textContent=key.replaceAll("_"," ");
-  reactionFile.textContent=path.replace("images/","");
-}
-
-function fitCanvas(c){
-  const r=video.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
-  const w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
-  if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;
-}
-function drawHands(hands){
-  fitCanvas(handCanvas);handCtx.clearRect(0,0,handCanvas.width,handCanvas.height);
-  const W=handCanvas.width,H=handCanvas.height;
-  handCtx.strokeStyle="rgba(244,250,255,.88)";handCtx.lineWidth=2;
-  handCtx.fillStyle="rgba(241,249,255,.98)";
-  for(const lms of hands){
-    for(const [a,b] of HAND_CONNECTIONS){
-      handCtx.beginPath();handCtx.moveTo((1-lms[a].x)*W,lms[a].y*H);handCtx.lineTo((1-lms[b].x)*W,lms[b].y*H);handCtx.stroke();
-    }
-    for(const p of lms){handCtx.beginPath();handCtx.arc((1-p.x)*W,p.y*H,3,0,Math.PI*2);handCtx.fill()}
-  }
-}
-function drawPose(pose){
-  fitCanvas(poseCanvas);poseCtx.clearRect(0,0,poseCanvas.width,poseCanvas.height);
-  if(!pose)return;
-  const W=poseCanvas.width,H=poseCanvas.height;
-  poseCtx.strokeStyle="rgba(220,239,255,.44)";poseCtx.lineWidth=2;
-  poseCtx.fillStyle="rgba(227,243,255,.76)";
-  for(const [a,b] of POSE_CONNECTIONS){
-    if(!poseVisible(pose[a])||!poseVisible(pose[b]))continue;
-    poseCtx.beginPath();poseCtx.moveTo((1-pose[a].x)*W,pose[a].y*H);poseCtx.lineTo((1-pose[b].x)*W,pose[b].y*H);poseCtx.stroke();
-  }
-  for(const id of [11,12,13,14,15,16,23,24]){
-    const p=pose[id];if(!poseVisible(p))continue;
-    poseCtx.beginPath();poseCtx.arc((1-p.x)*W,p.y*H,3,0,Math.PI*2);poseCtx.fill();
-  }
-}
-
-async function initModels(){
-  const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs");
-  const resolver=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
-
-  handLandmarker=await vision.HandLandmarker.createFromOptions(resolver,{
-    baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"},
-    runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.6,minTrackingConfidence:.6
-  });
-
-  faceLandmarker=await vision.FaceLandmarker.createFromOptions(resolver,{
-    baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"},
-    runningMode:"VIDEO",numFaces:1,minFaceDetectionConfidence:.6,minTrackingConfidence:.6,
-    outputFacialTransformationMatrixes:true
-  });
-
-  poseLandmarker=await vision.PoseLandmarker.createFromOptions(resolver,{
-    baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"},
-    runningMode:"VIDEO",numPoses:1,minPoseDetectionConfidence:.5,minTrackingConfidence:.5
-  });
-}
-async function startCamera(){
-  startBtn.disabled=true;startBtn.textContent="Loading sensors…";
-  try{
-    if(!window.isSecureContext)throw new Error("Camera requires HTTPS or localhost.");
-    if(!stream)stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});
-    video.srcObject=stream;await video.play();
-    if(!handLandmarker)await initModels();
-    running=true;startLayer.classList.add("hidden");cameraToggle.textContent="Camera off";
-    requestAnimationFrame(loop);
-  }catch(err){
-    console.error(err);startBtn.disabled=false;startBtn.textContent="Try again";
-    document.querySelector(".start-card p").textContent=(err.name||"Camera error")+": "+(err.message||String(err));
-  }
-}
-function stopCamera(){
-  running=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
-  video.srcObject=null;cameraToggle.textContent="Camera on";startLayer.classList.remove("hidden");
-  handCtx.clearRect(0,0,handCanvas.width,handCanvas.height);poseCtx.clearRect(0,0,poseCanvas.width,poseCanvas.height);
-  [handPill,facePill,posePill].forEach(x=>x.classList.remove("live"));
-}
-function loop(){
-  if(!running)return;
-  if(video.readyState>=2&&video.currentTime!==lastVideoTime){
-    lastVideoTime=video.currentTime;const t=performance.now();
-    try{
-      const handResult=handLandmarker.detectForVideo(video,t);
-      const faceResult=faceLandmarker.detectForVideo(video,t);
-      const poseResult=poseLandmarker.detectForVideo(video,t);
-      const result=classifyGesture(handResult,faceResult,poseResult);
-      const vote=updateVote(result.gesture);
-      showMeme(stableGesture);drawHands(result.hands);drawPose(result.pose);
-
-      handPill.classList.toggle("live",result.hands.length>0);
-      facePill.classList.toggle("live",!!faceResult?.faceLandmarks?.length);
-      posePill.classList.toggle("live",!!result.pose);
-
-      const yaw=result.yaw===null?"n/a":result.yaw.toFixed(1);
-      const first=result.hands[0];
-      let details="";
-      if(first){
-        details=` · fingers=${JSON.stringify(fingersUp(first))} · pinch=${isPinch(first)}(${pinchDistRatio(first).toFixed(2)}) · thumb_dy=${thumbDyRatio(first).toFixed(2)}`;
-      }
-      const b=bicepSignals(result.pose);
-      if(b)details+=` · elbow=${b[0].toFixed(0)}° wrist↑=${b[1].toFixed(2)} elbow_out=${b[2].toFixed(2)}`;
-      debug.textContent=`raw=${result.gesture} · stable=${stableGesture} · yaw=${yaw}° · votes=${vote.count}/${VOTE_WINDOW}${details}`;
-      voteLabel.textContent=`${vote.count} / ${VOTE_WINDOW}`;
-    }catch(err){console.warn("Detection frame error",err)}
-  }
-  requestAnimationFrame(loop);
-}
-
-startBtn.addEventListener("click",startCamera);
-cameraToggle.addEventListener("click",()=>running?stopCamera():startCamera());
-window.addEventListener("pagehide",()=>stream?.getTracks().forEach(t=>t.stop()));
-</script>
-
-<script>
-/* Camera Cat v2 — original image-folder compatibility */
-(() => {
-  const ORIGINAL_IMAGE_FOLDER = "images/";
-
-  // If the original project used bare filenames, resolve them from ./images/.
-  const imageExt = /\.(?:jpe?g|png|webp|gif)$/i;
-  const normalizeOriginalImagePath = (value) => {
-    if (!value || typeof value !== "string") return value;
-    if (/^(?:data:|blob:|https?:|\/)/i.test(value)) return value;
-    if (value.startsWith("images/") || value.startsWith("./images/")) return value;
-    if (imageExt.test(value)) return ORIGINAL_IMAGE_FOLDER + value;
-    return value;
-  };
-
-  // Patch image src assignment while preserving URLs/data generated by the detector.
-  const desc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
-  if (desc && desc.set && desc.get) {
-    Object.defineProperty(HTMLImageElement.prototype, "src", {
-      configurable: true,
-      enumerable: desc.enumerable,
-      get: desc.get,
-      set(value) { desc.set.call(this, normalizeOriginalImagePath(value)); }
-    });
-  }
-
-  // Also normalize images already present in the HTML.
-  document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("img[src]").forEach(img => {
-      const raw = img.getAttribute("src");
-      const fixed = normalizeOriginalImagePath(raw);
-      if (fixed !== raw) img.setAttribute("src", fixed);
-    });
-  });
-})();
-</script>
-
+<!-- Keep app.js from the original meowmeowcatcam project beside this index.html -->
+<script type="module" src="app.js"></script>
 </body>
 </html>
