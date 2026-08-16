@@ -194,6 +194,10 @@ body::before{
 <style>
 html{background:#000;}
 body > *:not(#matrixVideoBackground){position:relative;z-index:0;}
+
+#overlay{
+  filter:drop-shadow(0 0 3px rgba(0,255,65,.68)) !important;
+}
 </style></head>
 <body>
   <!-- MATRIX VIDEO BACKGROUND: keep fondo/art.mp4 in the repository -->
@@ -394,8 +398,8 @@ function drawHand(lm){
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   // Hand-detector style: bright skeleton + landmark points.
-  ctx.strokeStyle='rgba(255,235,235,.92)';
-  ctx.fillStyle='rgba(255,70,90,.98)';
+  ctx.strokeStyle='rgba(120,255,145,.92)';
+  ctx.fillStyle='rgba(0,255,65,.98)';
   ctx.lineWidth=Math.max(1.35,1.35*dpr);
   ctx.lineCap='round';
   ctx.lineJoin='round';
@@ -420,11 +424,11 @@ function drawHand(lm){
   ctx.shadowBlur=4*dpr;
   for(const p of lm){
     const x=(1-p.x)*W, y=p.y*H;
-    ctx.fillStyle='rgba(255,65,85,.98)';
+    ctx.fillStyle='rgba(0,255,65,.98)';
     ctx.beginPath();
     ctx.arc(x,y,3.4*dpr,0,Math.PI*2);
     ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.96)';
+    ctx.fillStyle='rgba(0,255,65,.98)';
     ctx.beginPath();
     ctx.arc(x,y,1.45*dpr,0,Math.PI*2);
     ctx.fill();
