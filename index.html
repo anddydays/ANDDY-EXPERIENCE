@@ -294,15 +294,20 @@ function clearOverlay(){
 }
 
 function drawHand(lm){
-  resizeOverlay();
-  clearOverlay();
+  // The overlay is resized/cleared once per frame in processHands().
+  // Do NOT clear here: otherwise drawing hand #2 erases hand #1.
   const W = overlay.width;
   const H = overlay.height;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  ctx.strokeStyle='rgba(190,255,126,.88)';
-  ctx.fillStyle='rgba(190,255,126,.95)';
-  ctx.lineWidth=Math.max(2,2*dpr);
+  // Hand-detector style: bright skeleton + landmark points.
+  ctx.strokeStyle='rgba(255,235,235,.92)';
+  ctx.fillStyle='rgba(255,70,90,.98)';
+  ctx.lineWidth=Math.max(1.35,1.35*dpr);
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.shadowColor='rgba(255,45,70,.72)';
+  ctx.shadowBlur=5*dpr;
 
   const links=[
     [0,1],[1,2],[2,3],[3,4],
@@ -319,11 +324,19 @@ function drawHand(lm){
     ctx.stroke();
   }
 
+  ctx.shadowBlur=4*dpr;
   for(const p of lm){
+    const x=(1-p.x)*W, y=p.y*H;
+    ctx.fillStyle='rgba(255,65,85,.98)';
     ctx.beginPath();
-    ctx.arc((1-p.x)*W,p.y*H,3*dpr,0,Math.PI*2);
+    ctx.arc(x,y,3.4*dpr,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.96)';
+    ctx.beginPath();
+    ctx.arc(x,y,1.45*dpr,0,Math.PI*2);
     ctx.fill();
   }
+  ctx.shadowBlur=0;
 }
 
 function classifyHand(lm){
@@ -695,6 +708,8 @@ function processHands(){
     const result=handLandmarker.detectForVideo(video,performance.now());
     const hands=result?.landmarks || [];
 
+    // Prepare one shared frame so both detected hands stay visible together.
+    resizeOverlay();
     clearOverlay();
 
     if(!hands.length){
