@@ -484,6 +484,22 @@ const cameraToggle = document.querySelector('#cameraToggle');
 
 let detectorRetryButton = null;
 
+console.log('[ANDDY] Environment',{
+  href:location.href,
+  secureContext:window.isSecureContext,
+  mediaDevices:!!navigator.mediaDevices,
+  getUserMedia:!!navigator.mediaDevices?.getUserMedia
+});
+
+navigator.mediaDevices?.enumerateDevices?.()
+  .then(devices=>{
+    console.log('[ANDDY] Media devices:',
+      devices.map(d=>({kind:d.kind,label:d.label,deviceId:d.deviceId ? 'available' : ''}))
+    );
+  })
+  .catch(err=>console.warn('[ANDDY] enumerateDevices failed',err));
+
+
 function ensureDetectorRetryButton(){
   if(detectorRetryButton) return detectorRetryButton;
 
@@ -1079,40 +1095,121 @@ async function initRecognizer(){
 async function startCamera(){
   if(cameraEnabled) return;
 
+  const setCameraError = (err) => {
+    const name = err?.name || 'CameraError';
+    const msg = err?.message || String(err);
+
+    console.error('[ANDDY] Camera failed:', name, msg, err);
+
+    cameraEnabled=false;
+    running=false;
+    statusDot.classList.remove('live');
+    statusText.textContent='camera error';
+
+    permission.classList.remove('hidden');
+    start.disabled=false;
+    start.textContent='Try again';
+
+    let help='';
+    if(name==='NotAllowedError' || name==='PermissionDeniedError'){
+      help='El navegador o macOS está bloqueando la cámara.';
+    }else if(name==='NotReadableError' || name==='TrackStartError'){
+      help='La cámara parece estar ocupada por otra app o Chrome no puede leerla.';
+    }else if(name==='NotFoundError' || name==='DevicesNotFoundError'){
+      help='No se encontró ninguna cámara disponible.';
+    }else if(name==='OverconstrainedError' || name==='ConstraintNotSatisfiedError'){
+      help='La cámara no acepta una de las configuraciones solicitadas.';
+    }else if(!window.isSecureContext){
+      help='La cámara requiere HTTPS o localhost.';
+    }else{
+      help='No se pudo iniciar la cámara.';
+    }
+
+    permission.querySelector('p').innerHTML =
+      `${help}<br><br><strong>${name}</strong><br><span style="font-size:.85em">${msg}</span>`;
+  };
+
   try{
+    if(!window.isSecureContext){
+      throw new Error('INSECURE_CONTEXT: camera requires HTTPS or localhost');
+    }
+
     if(!navigator.mediaDevices?.getUserMedia){
       throw new Error('getUserMedia unavailable');
     }
 
     statusText.textContent='requesting camera...';
 
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:'user',
-        width:{ideal:1280},
-        height:{ideal:720}
-      },
-      audio:false
-    });
-
-    /* IMPORTANTE: mostramos la cámara ANTES de cargar MediaPipe */
-    video.srcObject = stream;
-
-    await new Promise(resolve=>{
-      if(video.readyState >= 1) return resolve();
-      video.addEventListener('loadedmetadata',resolve,{once:true});
-    });
-
-    try{
-      await video.play();
-    }catch(err){
-      console.warn('video.play()',err);
+    // Stop any stale stream before requesting a fresh one.
+    if(stream){
+      stream.getTracks().forEach(track=>track.stop());
+      stream=null;
     }
 
-    cameraEnabled = true;
+    let firstError=null;
+
+    // Attempt 1: preferred front-camera constraints.
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{ideal:'user'},
+          width:{ideal:1280},
+          height:{ideal:720}
+        },
+        audio:false
+      });
+    }catch(err){
+      firstError=err;
+      console.warn('[ANDDY] Preferred camera request failed, retrying with video:true',err);
+    }
+
+    // Attempt 2: minimum possible constraint set.
+    if(!stream){
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({
+          video:true,
+          audio:false
+        });
+      }catch(secondError){
+        console.error('[ANDDY] Simple camera request also failed',secondError);
+        throw secondError || firstError;
+      }
+    }
+
+    if(!stream?.getVideoTracks?.().length){
+      throw new Error('NO_VIDEO_TRACK: stream opened without a video track');
+    }
+
+    const track=stream.getVideoTracks()[0];
+    console.log('[ANDDY] Camera track:',{
+      label:track.label,
+      readyState:track.readyState,
+      enabled:track.enabled,
+      settings:track.getSettings?.()
+    });
+
+    video.srcObject=stream;
+
+    await new Promise((resolve,reject)=>{
+      if(video.readyState>=1)return resolve();
+
+      const timer=setTimeout(
+        ()=>reject(new Error('VIDEO_METADATA_TIMEOUT')),
+        6000
+      );
+
+      video.addEventListener('loadedmetadata',()=>{
+        clearTimeout(timer);
+        resolve();
+      },{once:true});
+    });
+
+    await video.play();
+
+    cameraEnabled=true;
     await showLocalCatReaction('default');
-    running = true;
-    lastVideoTime = -1;
+    running=true;
+    lastVideoTime=-1;
 
     permission.classList.add('hidden');
     handLabel.classList.remove('hidden');
@@ -1127,23 +1224,15 @@ async function startCamera(){
 
     resizeCanvas();
     requestAnimationFrame(loop);
-
-    /* El detector se carga DESPUÉS, sin bloquear la cámara */
     initRecognizer();
 
   }catch(err){
-    console.error('Camera failed:',err);
-
-    cameraEnabled = false;
-    running = false;
-    statusDot.classList.remove('live');
-    statusText.textContent='camera blocked';
-
-    permission.classList.remove('hidden');
-    start.disabled=false;
-    start.textContent='Try again';
-    permission.querySelector('p').textContent =
-      'No pude mostrar la cámara. Revisa que el navegador tenga permiso de cámara para este sitio y vuelve a intentar.';
+    if(stream){
+      stream.getTracks().forEach(track=>track.stop());
+      stream=null;
+    }
+    video.srcObject=null;
+    setCameraError(err);
   }
 }
 
