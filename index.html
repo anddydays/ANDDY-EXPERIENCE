@@ -247,6 +247,174 @@ a{color:inherit;text-decoration:none}
   #debugHud{left:12px;right:12px;bottom:12px;font-size:8px}
 }
 @media(prefers-reduced-motion:reduce){body::before{animation:none}}
+
+.actions{
+  justify-self:end;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.gestures-btn{
+  appearance:none;
+  height:38px;
+  padding:0 15px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.38);
+  background:rgba(255,255,255,.09);
+  color:#fff;
+  cursor:pointer;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  transition:.25s ease;
+}
+.gestures-btn:hover{
+  background:rgba(255,255,255,.19);
+  transform:translateY(-1px);
+}
+.portfolio{
+  gap:8px !important;
+  min-width:108px;
+  justify-content:center;
+  height:40px !important;
+  padding:0 17px !important;
+  border:1px solid rgba(255,255,255,.78) !important;
+  background:rgba(255,255,255,.88) !important;
+  color:#45627e !important;
+  box-shadow:
+    0 8px 26px rgba(46,80,116,.18),
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 1px rgba(255,255,255,.22) !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+  letter-spacing:.14em !important;
+  transition:.25s ease;
+}
+.portfolio:hover{
+  background:#fff !important;
+  color:#2f4e6e !important;
+  transform:translateY(-1px) scale(1.015);
+  box-shadow:0 11px 30px rgba(42,78,116,.24),0 0 24px rgba(255,255,255,.32) !important;
+}
+.portfolio-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#6c8eaf;
+  box-shadow:0 0 10px rgba(75,117,156,.42);
+}
+
+.gesture-scrim{
+  position:fixed;
+  inset:0;
+  z-index:40;
+  background:rgba(35,55,77,.16);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.gesture-panel{
+  position:fixed;
+  z-index:41;
+  top:94px;
+  right:18px;
+  width:min(430px,calc(100vw - 36px));
+  max-height:calc(100svh - 112px);
+  overflow:auto;
+  border-radius:30px;
+  padding:22px;
+  transform:translateX(calc(100% + 35px));
+  opacity:0;
+  pointer-events:none;
+  transition:transform .42s cubic-bezier(.16,1,.3,1),opacity .3s ease;
+}
+.gesture-panel.open{
+  transform:translateX(0);
+  opacity:1;
+  pointer-events:auto;
+}
+.gesture-panel-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+}
+.gesture-kicker{
+  display:block;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.17em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.65);
+  margin-bottom:7px;
+}
+.gesture-panel h2{
+  margin:0;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:38px;
+  font-weight:400;
+  letter-spacing:-.045em;
+}
+.gesture-close{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.34);
+  background:rgba(255,255,255,.1);
+  color:#fff;
+  cursor:pointer;
+  font-size:22px;
+  line-height:1;
+}
+.gesture-intro{
+  margin:13px 0 17px;
+  color:rgba(255,255,255,.7);
+  font-size:11px;
+  line-height:1.55;
+}
+.gesture-manual-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.manual-card{
+  min-height:92px;
+  padding:12px;
+  border-radius:17px;
+  border:1px solid rgba(255,255,255,.23);
+  background:rgba(255,255,255,.075);
+}
+.manual-card strong{
+  display:block;
+  font-size:10px;
+  margin-bottom:6px;
+  color:#fff;
+}
+.manual-card span{
+  display:block;
+  color:rgba(255,255,255,.66);
+  font-size:9px;
+  line-height:1.45;
+}
+.gesture-tip{
+  margin-top:13px;
+  padding:11px 12px;
+  border-radius:15px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.055);
+  color:rgba(255,255,255,.66);
+  font-size:9px;
+  line-height:1.5;
+}
+@media(max-width:620px){
+  .gestures-btn{padding:0 11px}
+  .portfolio{min-width:auto !important;padding:0 12px !important}
+  .gesture-panel{top:78px;right:10px;width:calc(100vw - 20px);max-height:calc(100svh - 88px);padding:18px;border-radius:25px}
+  .gesture-manual-grid{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -258,7 +426,11 @@ a{color:inherit;text-decoration:none}
       <span class="pill">5 Frame Stabilization</span>
     </div>
     <div class="actions">
-      <a class="portfolio" href="https://anddydays.github.io/">Portfolio</a>
+      <button id="gesturesBtn" class="gestures-btn" type="button">Gestures</button>
+      <a class="portfolio" href="https://anddydays.github.io/">
+        <span class="portfolio-dot"></span>
+        Portfolio
+      </a>
     </div>
   </header>
 
@@ -288,7 +460,62 @@ a{color:inherit;text-decoration:none}
       </div>
     </aside>
   </main>
+
+  <div id="gestureScrim" class="gesture-scrim" hidden></div>
+  <aside id="gesturePanel" class="gesture-panel glass" aria-hidden="true">
+    <div class="gesture-panel-head">
+      <div>
+        <span class="gesture-kicker">Camera Cat</span>
+        <h2>Gesture Manual</h2>
+      </div>
+      <button id="gestureClose" class="gesture-close" type="button" aria-label="Close gesture manual">×</button>
+    </div>
+
+    <p class="gesture-intro">These are the gestures recognized by the original detector.</p>
+
+    <div class="gesture-manual-grid">
+      <div class="manual-card"><strong>🤙 Rockstar</strong><span>Thumb + pinky extended while the middle fingers stay curled.</span></div>
+      <div class="manual-card"><strong>☝️ One finger up</strong><span>Only the index finger extended and held away from the mouth.</span></div>
+      <div class="manual-card"><strong>✊ Fist</strong><span>Close one hand into a clear fist.</span></div>
+      <div class="manual-card"><strong>🤫 Shhh</strong><span>Point one index finger and bring the fingertip close to your mouth.</span></div>
+      <div class="manual-card"><strong>👉👈 Fingers together</strong><span>Point both index fingers and bring the fingertips close together.</span></div>
+      <div class="manual-card"><strong>🙈 Cover face</strong><span>Place one open hand over the central face / mouth area.</span></div>
+      <div class="manual-card"><strong>😾 Crash out</strong><span>Raise both hands close to the sides of your face.</span></div>
+      <div class="manual-card"><strong>🙆 Hands on head</strong><span>Raise both hands above and onto the top of your head.</span></div>
+      <div class="manual-card"><strong>🫴 Open palm</strong><span>Hold one open palm outward and away from your face.</span></div>
+      <div class="manual-card"><strong>👀 Side eye</strong><span>Turn your head clearly to either side without a stronger hand gesture.</span></div>
+    </div>
+
+    <div class="gesture-tip">Hold the pose briefly. The original detector waits for 5 stable frames before changing the cat.</div>
+  </aside>
+
 </div>
+
+
+<script>
+(() => {
+  const btn=document.getElementById('gesturesBtn');
+  const panel=document.getElementById('gesturePanel');
+  const close=document.getElementById('gestureClose');
+  const scrim=document.getElementById('gestureScrim');
+
+  const openPanel=()=>{
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden','false');
+    scrim.hidden=false;
+  };
+  const closePanel=()=>{
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden','true');
+    scrim.hidden=true;
+  };
+
+  btn?.addEventListener('click',openPanel);
+  close?.addEventListener('click',closePanel);
+  scrim?.addEventListener('click',closePanel);
+  window.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+})();
+</script>
 
 <!-- Keep app.js from the original meowmeowcatcam project beside this index.html -->
 <script type="module" src="app.js"></script>
