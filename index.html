@@ -320,6 +320,15 @@ select,input[type="text"]{
 }
 </style>
 
+
+<style id="anddy-local-only-v16">
+#cat,#gifReaction,.giphy-credit{display:none !important}
+#customReactionImage{
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#experienceMain">Skip to experience</a>
@@ -358,19 +367,19 @@ select,input[type="text"]{
 </section>
 
 <section class="panel">
-  <div class="panel-title">02 / reaction</div>
+  <div class="panel-title">02 / local reaction</div>
   <div class="reaction">
     <div id="reactionCard" class="reaction-card">
       <div id="gifStage" class="gif-stage">
-        <div id="cat" class="cat">🐈</div>
+        <div id="cat" class="cat hidden"></div>
         <img id="gifReaction" class="gif-reaction hidden" alt="GIPHY reaction">
         <img id="customReactionImage" class="custom-reaction-image hidden" alt="Custom reaction">
       </div>
       <div id="gestureText" class="gesture">waiting...</div>
       <div id="gifStatus" class="gif-status">gesture reaction ready</div>
-      <a class="giphy-credit" href="https://giphy.com/" target="_blank" rel="noopener">Powered by GIPHY</a>
+      
     </div>
-    <div class="hint">Open palm · fist · peace · thumbs · rock · call me · wave · swipe<br>Each stable gesture requests one matching reaction from GIPHY.</div>
+    <div class="hint">Open palm · fist · peace · thumbs · rock · call me · wave · swipe<br>Each stable gesture or expression shows one of your local images.</div>
   </div>
 </section>
 </main>
@@ -477,31 +486,59 @@ const SETTINGS_KEY = 'anddy-experience-v6-settings';
    These take priority over GIPHY when a matching trigger exists.
 ========================================================= */
 const LOCAL_CAT_REACTIONS = {
-  'face:surprise': 'gatos/gritando.jpg',
-  'face:blink':    'gatos/coqueto.jpg',
-  'face:smile':    'gatos/jeje.jpg',
-  'face:neutral':  'gatos/serio.jpg',
+  /* FACE */
+  'face:neutral':    ['gatos/serio.jpg', 'gatos/serio .jpg'],
+  'face:smile':      ['gatos/jeje.jpg'],
+  'face:surprise':   ['gatos/gritando.jpg'],
+  'face:blink':      ['gatos/coqueto.jpg'],
+  'face:worried':    ['gatos/preocupado.jpg'],
 
-  'hand:fist':     'gatos/puño.jpg',
-  'hand:thumbsdown':'gatos/nojado.jpg',
+  /* HAND POSES */
+  'hand:open':       ['gatos/gritando.jpg'],
+  'hand:fist':       ['gatos/puño.jpg'],
+  'hand:point':      ['gatos/duren.jpg'],
+  'hand:peace':      ['gatos/jeje.jpg'],
+  'hand:thumbsup':   ['gatos/jeje.jpg'],
+  'hand:thumbsdown': ['gatos/nojado.jpg'],
+  'hand:one':        ['gatos/serio.jpg', 'gatos/serio .jpg'],
+  'hand:rock':       ['gatos/duren.jpg'],
+  'hand:callme':     ['gatos/coqueto.jpg'],
+  'hand:middle':     ['gatos/duren.jpg'],
 
-  /* Extra categories we can calibrate later */
-  'face:worried':  'gatos/preocupado.jpg',
-  'hand:middle':   'gatos/duren.jpg'
+  /* HAND MOVEMENT / GESTICULATION */
+  'motion:wave':        ['gatos/jeje.jpg'],
+  'motion:swipeleft':   ['gatos/nojado.jpg'],
+  'motion:swiperight':  ['gatos/coqueto.jpg'],
+  'motion:openclose':   ['gatos/puño.jpg']
 };
 
 let localReactionToken = 0;
 const LOCAL_CAT_STATUS = new Map();
 
 function preloadLocalCats(){
-  Object.entries(LOCAL_CAT_REACTIONS).forEach(([key,src])=>{
-    const img=new Image();
-    img.onload=()=>LOCAL_CAT_STATUS.set(key,true);
-    img.onerror=()=>{
-      LOCAL_CAT_STATUS.set(key,false);
-      console.warn('[ANDDY] local cat not found:', key, src);
+  Object.entries(LOCAL_CAT_REACTIONS).forEach(([key,candidates])=>{
+    const list=Array.isArray(candidates)?candidates:[candidates];
+    let index=0;
+
+    const tryNext=()=>{
+      if(index>=list.length){
+        LOCAL_CAT_STATUS.set(key,false);
+        console.warn('[ANDDY] no local cat found for:',key,list);
+        return;
+      }
+
+      const src=list[index++];
+      const img=new Image();
+
+      img.onload=()=>{
+        LOCAL_CAT_STATUS.set(key,src);
+        console.log('[ANDDY] local cat ready:',key,src);
+      };
+      img.onerror=tryNext;
+      img.src=encodeURI(src);
     };
-    img.src=encodeURI(src);
+
+    tryNext();
   });
 }
 preloadLocalCats();
@@ -656,117 +693,64 @@ function reactionEndpoint(type){
 
 
 async function showLocalCatReaction(triggerKey){
-  const src = LOCAL_CAT_REACTIONS[triggerKey];
-  if(!src) return false;
+  const candidates=LOCAL_CAT_REACTIONS[triggerKey];
+  if(!candidates)return false;
 
-  const token = ++localReactionToken;
+  const list=Array.isArray(candidates)?candidates:[candidates];
+  const token=++localReactionToken;
 
-  return new Promise(resolve=>{
-    customReactionImage.onload=()=>{
-      if(token!==localReactionToken) return resolve(false);
+  ++gifRequestToken;
+  gifReaction.removeAttribute('src');
+  gifReaction.classList.add('hidden');
+  cat.classList.add('hidden');
 
-      ++gifRequestToken;
-      gifReaction.removeAttribute('src');
-      gifReaction.classList.add('hidden');
-      cat.classList.add('hidden');
+  for(const src of list){
+    const loaded=await new Promise(resolve=>{
+      const img=new Image();
 
-      customReactionImage.classList.remove('hidden');
-      LOCAL_CAT_STATUS.set(triggerKey,true);
-      gifStatus.textContent='local cat · '+triggerKey.replace(':',' ');
-      resolve(true);
-    };
+      img.onload=()=>{
+        if(token!==localReactionToken)return resolve(false);
 
-    customReactionImage.onerror=()=>{
-      console.warn('Local cat missing:',src);
-      LOCAL_CAT_STATUS.set(triggerKey,false);
-      customReactionImage.classList.add('hidden');
-      gifStatus.textContent='local image missing · using GIPHY';
-      resolve(false);
-    };
+        customReactionImage.onload=()=>{
+          if(token!==localReactionToken)return resolve(false);
+          customReactionImage.classList.remove('hidden');
+          LOCAL_CAT_STATUS.set(triggerKey,src);
+          gifStatus.textContent='local image · '+triggerKey.replace(':',' ');
+          resolve(true);
+        };
 
-    gifStatus.textContent='loading local cat...';
-    customReactionImage.src=encodeURI(src);
-  });
+        customReactionImage.onerror=()=>resolve(false);
+        customReactionImage.src=encodeURI(src);
+      };
+
+      img.onerror=()=>resolve(false);
+      img.src=encodeURI(src);
+    });
+
+    if(loaded)return true;
+  }
+
+  customReactionImage.classList.add('hidden');
+  gifStatus.textContent='local image missing · '+triggerKey.replace(':',' ');
+  console.warn('[ANDDY] local image missing for:',triggerKey,list);
+  return false;
 }
 
 async function showConfiguredReaction(triggerKey){
-  const now = performance.now();
-  if(now < reactionLockedUntil) return;
-  if(triggerKey === lastTriggerKey) return;
+  const now=performance.now();
+  if(now<reactionLockedUntil)return;
+  if(triggerKey===lastTriggerKey)return;
 
-  lastTriggerKey = triggerKey;
-  reactionLockedUntil = now + REACTION_HOLD_MS;
+  lastTriggerKey=triggerKey;
+  reactionLockedUntil=now+REACTION_HOLD_MS;
 
-  /* First choice: your own cat image for this gesture/expression. */
-  const usedLocalCat = await showLocalCatReaction(triggerKey);
-  if(usedLocalCat) return;
+  const usedLocal=await showLocalCatReaction(triggerKey);
 
-  /* Fallback: configured GIPHY / sticker / emoji / custom image. */
-  const cfg = appSettings.reactions[triggerKey];
-  if(!cfg) return;
-
-  gifReaction.classList.add('hidden');
-  customReactionImage.classList.add('hidden');
-  cat.classList.add('hidden');
-
-  if(cfg.type === 'emoji'){
-    cat.textContent = cfg.value || '✨';
-    cat.classList.remove('hidden');
-    gifStatus.textContent = triggerKey.replace(':',' · ');
-    return;
-  }
-
-  if(cfg.type === 'image'){
-    if(cfg.value){
-      customReactionImage.src=cfg.value;
-      customReactionImage.classList.remove('hidden');
-      gifStatus.textContent='custom image · '+triggerKey.replace(':',' ');
-    }else{
-      cat.textContent='🖼️';
-      cat.classList.remove('hidden');
-      gifStatus.textContent='choose a custom image';
-    }
-    return;
-  }
-
-  if(!GIPHY_API_KEY || GIPHY_API_KEY === 'PASTE_YOUR_GIPHY_KEY_HERE'){
-    cat.textContent='🐈';
-    cat.classList.remove('hidden');
-    gifStatus.textContent='GIPHY key missing';
-    return;
-  }
-
-  const token=++gifRequestToken;
-  gifStatus.textContent='searching '+cfg.type+'...';
-
-  try{
-    const params=new URLSearchParams({
-      api_key:GIPHY_API_KEY,
-      q:cfg.value || 'reaction',
-      limit:'12',
-      rating:'g',
-      lang:'en'
-    });
-    const res=await fetch(`${reactionEndpoint(cfg.type)}?${params}`);
-    if(!res.ok) throw new Error('GIPHY '+res.status);
-    const json=await res.json();
-    if(token!==gifRequestToken)return;
-    const items=json.data||[];
-    if(!items.length)throw new Error('No results');
-    const item=items[Math.floor(Math.random()*Math.min(items.length,8))];
-    const url=item.images?.fixed_height?.url || item.images?.downsized_medium?.url || item.images?.original?.url;
-    if(!url)throw new Error('No image URL');
-    gifReaction.onload=()=>{
-      if(token!==gifRequestToken)return;
-      gifReaction.classList.remove('hidden');
-      gifStatus.textContent=cfg.value || triggerKey;
-    };
-    gifReaction.src=url;
-  }catch(err){
-    console.error(err);
-    cat.textContent='😿';
-    cat.classList.remove('hidden');
-    gifStatus.textContent='reaction unavailable';
+  if(!usedLocal){
+    gifReaction.removeAttribute('src');
+    gifReaction.classList.add('hidden');
+    cat.classList.add('hidden');
+    customReactionImage.classList.add('hidden');
   }
 }
 
@@ -924,7 +908,6 @@ function react(type){
   if(type!==lastGesture){
     lastGesture=type;
     const [emoji,label]=reactions[type]||reactions.other;
-    cat.textContent=emoji;
     gestureText.textContent=label;
     handLabel.textContent=detectorReady ? label : 'camera live · detector loading';
   }
