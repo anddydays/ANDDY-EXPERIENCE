@@ -23,6 +23,18 @@ main{min-height:calc(100svh - 72px);display:grid;grid-template-columns:minmax(0,
 #camera,#overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 #camera{z-index:1;background:#111}
 #overlay{z-index:2;pointer-events:none}
+
+#faceOverlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+  z-index:3;
+  pointer-events:none;
+}
+
 .permission{position:relative;z-index:5;text-align:center;width:min(520px,82%);padding:36px;border:1px solid #444;border-radius:28px;background:rgba(10,10,10,.78);backdrop-filter:blur(18px)}
 .permission h1{font-size:clamp(42px,6vw,90px);font-weight:400;line-height:.9;margin:0 0 22px;letter-spacing:-.06em}
 .permission p{color:#aaa;line-height:1.5;margin:0 auto 25px;max-width:390px}
@@ -132,6 +144,7 @@ button{appearance:none;border:1px solid #666;background:#f2eee6;color:#111;borde
     <div class="camera-wrap">
       <video id="camera" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
+      <canvas id="faceOverlay"></canvas>
         <div id="framingAssist" class="framing-assist">
           <div class="framing-head"></div>
           <div class="framing-hand left"></div>
@@ -193,6 +206,8 @@ button{appearance:none;border:1px solid #666;background:#f2eee6;color:#111;borde
 const video = document.querySelector('#camera');
 const overlay = document.querySelector('#overlay');
 const ctx = overlay.getContext('2d');
+const faceOverlay = document.querySelector('#faceOverlay');
+const faceCtx = faceOverlay.getContext('2d');
 const permission = document.querySelector('#permission');
 const permissionText = document.querySelector('#permissionText');
 const startButton = document.querySelector('#start');
@@ -405,6 +420,110 @@ function updateFramingAssist(faceLandmarks, handsCount=0){
   framingStatus.textContent=message;
   framingStatus.classList.toggle('good',good);
   framingAssist.classList.toggle('ready',good);
+}
+
+
+function resizeFaceOverlay(){
+  const r=video.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(1,Math.round(r.width*dpr));
+  const h=Math.max(1,Math.round(r.height*dpr));
+
+  if(faceOverlay.width!==w) faceOverlay.width=w;
+  if(faceOverlay.height!==h) faceOverlay.height=h;
+}
+
+function clearFaceOverlay(){
+  faceCtx.clearRect(0,0,faceOverlay.width,faceOverlay.height);
+}
+
+function drawFaceLandmarks(lm){
+  if(!lm?.length) {
+    clearFaceOverlay();
+    return;
+  }
+
+  resizeFaceOverlay();
+  clearFaceOverlay();
+
+  const W=faceOverlay.width;
+  const H=faceOverlay.height;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+
+  const pt=i=>{
+    const p=lm[i];
+    return p ? {x:(1-p.x)*W,y:p.y*H} : null;
+  };
+
+  const drawPath=(indices, close=false, alpha=.82)=>{
+    faceCtx.beginPath();
+    let started=false;
+    for(const i of indices){
+      const p=pt(i);
+      if(!p) continue;
+      if(!started){
+        faceCtx.moveTo(p.x,p.y);
+        started=true;
+      }else{
+        faceCtx.lineTo(p.x,p.y);
+      }
+    }
+    if(close) faceCtx.closePath();
+    faceCtx.strokeStyle=`rgba(255,255,255,${alpha})`;
+    faceCtx.lineWidth=Math.max(1.1,1.15*dpr);
+    faceCtx.stroke();
+  };
+
+  const drawPoints=(indices, radius=1.8, alpha=.95)=>{
+    faceCtx.fillStyle=`rgba(255,110,125,${alpha})`;
+    for(const i of indices){
+      const p=pt(i);
+      if(!p) continue;
+      faceCtx.beginPath();
+      faceCtx.arc(p.x,p.y,radius*dpr,0,Math.PI*2);
+      faceCtx.fill();
+
+      faceCtx.beginPath();
+      faceCtx.arc(p.x,p.y,Math.max(.55,.65*dpr),0,Math.PI*2);
+      faceCtx.fillStyle='rgba(255,255,255,.95)';
+      faceCtx.fill();
+      faceCtx.fillStyle=`rgba(255,110,125,${alpha})`;
+    }
+  };
+
+  // MediaPipe Face Landmarker key regions.
+  const faceOval=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+  const leftEye=[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
+  const rightEye=[263,249,390,373,374,380,381,382,362,398,384,385,386,387,388,466];
+  const leftBrow=[70,63,105,66,107,55,65,52,53,46];
+  const rightBrow=[300,293,334,296,336,285,295,282,283,276];
+  const nose=[168,6,197,195,5,4,1,19,94,2];
+  const noseLeft=[98,97,2,326,327];
+  const lipsOuter=[61,146,91,181,84,17,314,405,321,375,291,308,324,318,402,317,14,87,178,88,95,78];
+  const lipsInner=[78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95];
+
+  drawPath(faceOval,true,.50);
+  drawPath(leftEye,true,.92);
+  drawPath(rightEye,true,.92);
+  drawPath(leftBrow,false,.85);
+  drawPath(rightBrow,false,.85);
+  drawPath(nose,false,.70);
+  drawPath(noseLeft,false,.55);
+  drawPath(lipsOuter,true,.92);
+  drawPath(lipsInner,true,.68);
+
+  const important=[
+    ...faceOval,
+    ...leftEye,...rightEye,
+    ...leftBrow,...rightBrow,
+    ...nose,...noseLeft,
+    ...lipsOuter
+  ];
+  drawPoints([...new Set(important)],1.5,.92);
+
+  // Extra feature points for richer "face sensor" feel without drawing all 468 dots.
+  const extra=[468,469,470,471,472,473,474,475,476,1,4,5,6,9,10,152,234,454,33,133,263,362,61,291,13,14];
+  drawPoints(extra,1.9,.98);
 }
 
 function analyzeFace(result){
@@ -645,6 +764,7 @@ function stopCamera(){
   video.pause();
   video.srcObject=null;
   clearOverlay();
+  clearFaceOverlay();
 
   statusDot?.classList.remove('live');
   statusText.textContent='camera offline';
@@ -664,11 +784,13 @@ function processFace(){
 
     if(!result?.faceLandmarks?.length){
       latestFaceLandmarks=null;
+      clearFaceOverlay();
       faceLabel.textContent='face: searching';
       return;
     }
 
     latestFaceLandmarks=result.faceLandmarks[0];
+    drawFaceLandmarks(latestFaceLandmarks);
 
     const analysis=analyzeFace(result);
     const exp=analysis.expression;
@@ -696,6 +818,7 @@ function processFace(){
 
   }catch(err){
     faceLabel.textContent='face: error';
+    clearFaceOverlay();
     console.warn('Face detection error',err);
   }
 }
@@ -833,7 +956,7 @@ function ensureCameraStartControl(){
 
 ensureCameraStartControl();
 
-window.addEventListener('resize',resizeOverlay);
+window.addEventListener('resize',()=>{ resizeOverlay(); resizeFaceOverlay(); });
 
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
