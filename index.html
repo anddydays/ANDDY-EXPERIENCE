@@ -358,6 +358,23 @@ select,input[type="text"]{
 <style id="anddy-v19-no-customize">
 #customizePanel,#customizeOpen,.customize-panel,.customize-overlay{display:none !important}
 </style>
+
+<style id="anddy-v20-fixed-local-only">
+#customizePanel,#customizeOpen,.customize-panel,.panel-scrim,
+#cat,#gifReaction,.giphy-credit{
+  display:none !important;
+}
+#customReactionImage{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+</style>
+
+<style id="anddy-v21-code-leak-guard">
+pre.debug, code.debug, .source-dump, .code-dump { display:none !important; }
+</style>
 </head>
 <body>
 <a class="skip-link" href="#experienceMain">Skip to experience</a>
@@ -401,15 +418,23 @@ select,input[type="text"]{
     <div id="reactionCard" class="reaction-card">
       <div id="gifStage" class="gif-stage">
         <div id="cat" class="cat hidden"></div>
-        <img id="gifReaction" class="gif-reaction hidden" alt="GIPHY reaction">
-        <img id="customReactionImage" class="custom-reaction-image hidden" alt="Custom reaction">
+        <img id="gifReaction" class="gif-reaction hidden" alt="">
+        <img id="customReactionImage" class="custom-reaction-image hidden" alt="Local reaction image">
       </div>
-      <div id="gestureText" class="gesture">waiting...</div>
-      <div id="gifStatus" class="gif-status">gesture reaction ready</div>
-      
+
+      <div id="gestureText" class="gesture">READY</div>
+      <div id="gifStatus" class="gif-status">default · serio</div>
     </div>
-    <div class="hint">Open palm · fist · peace · thumbs · rock · call me · wave · swipe<br>Each stable gesture or expression shows one of your local images.</div>
-  </div><script type="module">
+
+    <div class="hint">
+      FIST · THUMBS UP · WINK · LAUGH · OPEN MOUTH · HOLD HEAD<br>
+      Fixed local reactions only.
+    </div>
+  </div>
+</section>
+</main>
+
+<script type="module">
 const video = document.querySelector('#camera');
 const canvas = document.querySelector('#overlay');
 const ctx = canvas.getContext('2d');
@@ -577,10 +602,13 @@ async function scanLocalCatLibrary(){
 }
 
 const LOCAL_CAT_REACTIONS = {
-  'default':           ['gatos/serio.jpg', 'gatos/serio .jpg'],
-  'hand:fist':         ['gatos/puño.jpg'],
-  'face:surprise':     ['gatos/gritando.jpg'],
-  'pose:headhold':     ['gatos/preocupado.jpg']
+  'default':        ['gatos/serio.jpg', 'gatos/serio .jpg'],
+  'hand:fist':      ['gatos/puño.jpg'],
+  'hand:thumbsup':  ['gatos/duren.jpg'],
+  'face:surprise':  ['gatos/gritando.jpg'],
+  'face:wink':      ['gatos/coqueto.jpg'],
+  'face:laugh':     ['gatos/jeje.jpg'],
+  'pose:headhold':  ['gatos/preocupado.jpg']
 };
 
 let localReactionToken = 0;
@@ -700,34 +728,34 @@ function thumbExtended(lm){
 }
 
 function classify(lm){
-  const f = fingersUp(lm);
-  const [index,middle,ring,pinky] = f;
-  const count = f.filter(Boolean).length;
-  const thumb = thumbExtended(lm);
+  const palm = lm[0];
+  const tips = [8,12,16,20];
+  const pips = [6,10,14,18];
 
-  // Thumb direction / like-dislike.
-  if(thumb && count===0){
-    const dy = lm[4].y - lm[0].y;
-    if(dy < -.10) return 'thumbsup';
-    if(dy > .10) return 'thumbsdown';
-  }
+  const curled = tips.map((tipId,i)=>{
+    const tip = lm[tipId];
+    const pip = lm[pips[i]];
+    const tipPalm = Math.hypot(tip.x-palm.x, tip.y-palm.y);
+    const pipPalm = Math.hypot(pip.x-palm.x, pip.y-palm.y);
+    return tipPalm < pipPalm * 1.12;
+  });
 
-  // Call me: thumb + pinky.
-  if(thumb && !index && !middle && !ring && pinky) return 'callme';
+  const curledCount = curled.filter(Boolean).length;
 
-  // Rock / I love you: index + pinky (+ thumb allowed).
-  if(index && !middle && !ring && pinky) return 'rock';
+  const thumbTip = lm[4];
+  const thumbIP = lm[3];
+  const thumbMCP = lm[2];
 
-  // Middle finger only.
-  if(!index && middle && !ring && !pinky) return 'middle';
+  const thumbClearlyUp =
+    thumbTip.y < thumbIP.y &&
+    thumbTip.y < thumbMCP.y &&
+    (palm.y - thumbTip.y) > 0.11;
 
-  // One finger up.
-  if(index && !middle && !ring && !pinky) return 'one';
+  // Like: thumb clearly up and at least 3 other fingers curled.
+  if(thumbClearlyUp && curledCount >= 3) return 'thumbsup';
 
-  if(count === 4) return 'open';
-  if(count === 0) return 'fist';
-  if(index && !middle && !ring && !pinky) return 'point';
-  if(index && middle && !ring && !pinky) return 'peace';
+  // Fist: 3 or 4 fingers curled, without a clear thumbs-up.
+  if(curledCount >= 3) return 'fist';
 
   return 'other';
 }
@@ -746,52 +774,49 @@ async function showLocalCatReaction(triggerKey){
 
   const list = Array.isArray(candidates) ? candidates : [candidates];
 
-  const valid = list
-    .map(src => ({
-      src,
-      absolute: AVAILABLE_LOCAL_CATS.get(src)
-    }))
-    .filter(x => x.absolute);
-
-  if(!valid.length){
-    gifStatus.textContent = 'no local image for · ' + triggerKey.replace(':',' ');
-    console.warn('[ANDDY] trigger has no available local file:', triggerKey, list);
-    return false;
-  }
-
-  const chosen = valid[Math.floor(Math.random()*valid.length)];
-  const token = ++localReactionToken;
-
   ++gifRequestToken;
   gifReaction.removeAttribute('src');
   gifReaction.classList.add('hidden');
   cat.classList.add('hidden');
 
-  return new Promise(resolve=>{
-    customReactionImage.onload=()=>{
-      if(token!==localReactionToken) return resolve(false);
-      customReactionImage.classList.remove('hidden');
-      gifStatus.textContent='local image · '+triggerKey.replace(':',' ');
-      resolve(true);
-    };
+  for(const relative of list){
+    const absolute = new URL(relative, window.location.href).href;
 
-    customReactionImage.onerror=()=>{
-      gifStatus.textContent='local image failed to display';
-      resolve(false);
-    };
+    const ok = await new Promise(resolve=>{
+      const probe = new Image();
+      probe.onload = ()=>resolve(true);
+      probe.onerror = ()=>resolve(false);
+      probe.src = absolute;
+    });
 
-    customReactionImage.src=chosen.absolute;
-  });
+    if(!ok) continue;
+
+    return await new Promise(resolve=>{
+      customReactionImage.onload=()=>{
+        customReactionImage.classList.remove('hidden');
+        gifStatus.textContent = triggerKey==='default'
+          ? 'default · serio'
+          : 'reaction · '+triggerKey.replace(':',' ');
+        resolve(true);
+      };
+      customReactionImage.onerror=()=>resolve(false);
+      customReactionImage.src=absolute;
+    });
+  }
+
+  customReactionImage.classList.add('hidden');
+  gifStatus.textContent='missing local image · '+triggerKey;
+  console.error('[ANDDY] Missing local reaction:', triggerKey, list);
+  return false;
 }
 
 async function showConfiguredReaction(triggerKey){
-  const now=performance.now();
-  if(now<reactionLockedUntil)return;
-  if(triggerKey===lastTriggerKey)return;
+  const now = performance.now();
+  if(now < reactionLockedUntil) return;
+  if(triggerKey === lastTriggerKey) return;
 
-  lastTriggerKey=triggerKey;
-  reactionLockedUntil=now+REACTION_HOLD_MS;
-
+  lastTriggerKey = triggerKey;
+  reactionLockedUntil = now + REACTION_HOLD_MS;
   await showLocalCatReaction(triggerKey);
 }
 
@@ -1274,6 +1299,7 @@ async function startCamera(){
     }
 
     cameraEnabled = true;
+    showLocalCatReaction('default');
     running = true;
     lastVideoTime = -1;
 
@@ -1443,21 +1469,31 @@ function faceScore(categories,name){
 
 function classifyFace(result){
   const cats=result?.faceBlendshapes?.[0]?.categories;
-  if(!cats?.length)return 'neutral';
+  if(!cats?.length) return 'neutral';
 
-  const smile=(faceScore(cats,'mouthSmileLeft')+faceScore(cats,'mouthSmileRight'))/2;
-  const jaw=faceScore(cats,'jawOpen');
-  const browInner=faceScore(cats,'browInnerUp');
-  const browOuter=(faceScore(cats,'browOuterUpLeft')+faceScore(cats,'browOuterUpRight'))/2;
-  const blinkLeft=faceScore(cats,'eyeBlinkLeft');
-  const blinkRight=faceScore(cats,'eyeBlinkRight');
-  const blink=Math.max(blinkLeft,blinkRight);
-  const frown=(faceScore(cats,'mouthFrownLeft')+faceScore(cats,'mouthFrownRight'))/2;
+  const score = name => faceScore(cats,name);
 
-  if(blink>.72)return 'blink';
-  if(jaw>.50 && (browInner>.18 || browOuter>.18))return 'surprise';
-  if(smile>.48)return 'smile';
-  if(frown>.32 && browInner>.18)return 'worried';
+  const smile=(score('mouthSmileLeft')+score('mouthSmileRight'))/2;
+  const jaw=score('jawOpen');
+  const blinkL=score('eyeBlinkLeft');
+  const blinkR=score('eyeBlinkRight');
+  const brow=(score('browInnerUp')+score('browOuterUpLeft')+score('browOuterUpRight'))/3;
+
+  // One eye closed, the other open.
+  if((blinkL>.70 && blinkR<.35) || (blinkR>.70 && blinkL<.35)){
+    return 'wink';
+  }
+
+  // Strong smile with open mouth = laughing.
+  if(smile>.50 && jaw>.20){
+    return 'laugh';
+  }
+
+  // Mouth open without strong smile = scream/surprise.
+  if(jaw>.46 && smile<.42 && brow>.08){
+    return 'surprise';
+  }
+
   return 'neutral';
 }
 
@@ -1492,15 +1528,15 @@ function processFace(){
 
     if(
       appSettings.mode!=='hands' &&
-      exp==='surprise' &&
+      ['wink','laugh','surprise'].includes(exp) &&
       exp!==lastFaceExpression &&
       now-faceCandidateSince>FACE_HOLD_MS
     ){
       lastFaceExpression=exp;
-      showConfiguredReaction('face:surprise');
+      showConfiguredReaction('face:'+exp);
     }
 
-    if(exp!=='surprise' && now-faceCandidateSince>350){
+    if(exp==='neutral' && now-faceCandidateSince>350){
       lastFaceExpression='';
     }
 
@@ -1532,19 +1568,22 @@ async function loop(){
         const lm=result.landmarks[0];
         drawHand(lm);
 
-        // Highest priority: both hands held around the head.
+        // Highest priority: both hands around the head.
         if(detectHeadHold(result.landmarks, latestFaceLandmarks)){
-          handLabel.textContent='pose: holding head';
+          handLabel.textContent='HOLDING HEAD';
           showConfiguredReaction('pose:headhold');
         }else{
           const staticGesture=classify(lm);
           lastStaticHandGesture=staticGesture;
 
-          // Only the closed fist has a dedicated hand image.
-          if(staticGesture==='fist'){
-            react('fist');
+          if(staticGesture==='thumbsup'){
+            handLabel.textContent='THUMBS UP';
+            showConfiguredReaction('hand:thumbsup');
+          }else if(staticGesture==='fist'){
+            handLabel.textContent='FIST';
+            showConfiguredReaction('hand:fist');
           }else{
-            react('other');
+            handLabel.textContent='READY';
           }
         }
       }else{
@@ -1566,7 +1605,6 @@ async function loop(){
     lastFaceExpression = '';
     showLocalCatReaction('default');
     gifStatus.textContent = 'default · serio';
-    customReactionImage.classList.add('hidden');
   }
 
   requestAnimationFrame(loop);
@@ -1653,6 +1691,18 @@ document.addEventListener('visibilitychange',()=>{
        pero no quitamos el permiso ni apagamos el stream automáticamente. */
     running=false;
   }else if(!document.hidden && cameraEnabled){
+    running=true;
+    lastVideoTime=-1;
+    requestAnimationFrame(loop);
+  }
+});
+
+window.addEventListener('pagehide',()=>{
+  if(stream){
+    stream.getTracks().forEach(track=>track.stop());
+  }
+});
+</script>n && cameraEnabled){
     running=true;
     lastVideoTime=-1;
     requestAnimationFrame(loop);
