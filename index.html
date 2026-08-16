@@ -475,8 +475,8 @@ async function initDetectors(){
   }
 
   detectorsReady=true;
-  handLabel.textContent='READY';
-  faceLabel.textContent='face: ready';
+  if(handLabel) handLabel.textContent='READY';
+  if(faceLabel) faceLabel.textContent='face: ready';
 }
 
 async function startCamera(){
@@ -486,7 +486,7 @@ async function startCamera(){
     if(!window.isSecureContext) throw new Error('Camera requires HTTPS or localhost');
     if(!navigator.mediaDevices?.getUserMedia) throw new Error('getUserMedia unavailable');
 
-    statusText.textContent='requesting camera...';
+    if(statusText) statusText.textContent='requesting camera...';
 
     try{
       stream = await navigator.mediaDevices.getUserMedia({
@@ -508,13 +508,13 @@ async function startCamera(){
 
     cameraEnabled=true;
     running=true;
-    permission.classList.add('hidden');
-    handLabel.classList.remove('hidden');
-    faceLabel.classList.remove('hidden');
-    cameraControls.classList.remove('hidden');
-    statusDot.classList.add('live');
-    statusText.textContent='camera live';
-    cameraToggle.textContent='Camera Off';
+    permission?.classList.add('hidden');
+    handLabel?.classList.remove('hidden');
+    faceLabel?.classList.remove('hidden');
+    cameraControls?.classList.remove('hidden');
+    statusDot?.classList.add('live');
+    if(statusText) statusText.textContent='camera live';
+    if(cameraToggle) cameraToggle.textContent='Camera Off';
     showReaction('default');
 
     resizeOverlay();
@@ -535,12 +535,12 @@ async function startCamera(){
     video.srcObject=null;
     cameraEnabled=false;
     running=false;
-    statusDot.classList.remove('live');
-    statusText.textContent='camera error';
-    permission.classList.remove('hidden');
-    startButton.disabled=false;
-    startButton.textContent='Try again';
-    permissionText.innerHTML='No pude iniciar la cámara.<br><br><strong>'+ (err.name||'CameraError') +'</strong><br>'+ (err.message||String(err));
+    statusDot?.classList.remove('live');
+    if(statusText) statusText.textContent='camera error';
+    permission?.classList.remove('hidden');
+    if(startButton) startButton.disabled=false;
+    if(startButton) startButton.textContent='Try again';
+    if(permissionText) permissionText.innerHTML='No pude iniciar la cámara.<br><br><strong>'+ (err.name||'CameraError') +'</strong><br>'+ (err.message||String(err));
   }
 }
 
@@ -557,12 +557,12 @@ function stopCamera(){
   video.srcObject=null;
   clearOverlay();
 
-  statusDot.classList.remove('live');
+  statusDot?.classList.remove('live');
   statusText.textContent='camera offline';
   handLabel.textContent='camera off';
   faceLabel.textContent='face off';
   cameraToggle.textContent='Camera On';
-  cameraControls.classList.remove('hidden');
+  cameraControls?.classList.remove('hidden');
   showReaction('default');
 }
 
@@ -681,20 +681,20 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-gesturesTab.addEventListener('click',()=>{
-  gestureDrawer.classList.toggle('hidden');
+gesturesTab?.addEventListener('click',()=>{
+  gestureDrawer?.classList.toggle('hidden');
 });
-gestureClose.addEventListener('click',()=>{
-  gestureDrawer.classList.add('hidden');
+gestureClose?.addEventListener('click',()=>{
+  gestureDrawer?.classList.add('hidden');
 });
 
-startButton.addEventListener('click',async()=>{
+startButton?.addEventListener('click',async()=>{
   startButton.disabled=true;
   startButton.textContent='Opening camera...';
   await startCamera();
 });
 
-cameraToggle.addEventListener('click',async()=>{
+cameraToggle?.addEventListener('click',async()=>{
   if(cameraEnabled){
     stopCamera();
   }else{
@@ -704,6 +704,43 @@ cameraToggle.addEventListener('click',async()=>{
     cameraToggle.disabled=false;
   }
 });
+
+
+function ensureCameraStartControl(){
+  // If the normal start button exists, nothing else is needed.
+  if(startButton) return;
+
+  console.warn('[ANDDY] Start button missing from DOM; creating recovery control.');
+
+  const cameraWrap=document.querySelector('.camera-wrap');
+  if(!cameraWrap) return;
+
+  const recovery=document.createElement('button');
+  recovery.id='cameraRecoveryStart';
+  recovery.type='button';
+  recovery.textContent='Start Camera';
+  recovery.style.position='absolute';
+  recovery.style.zIndex='50';
+  recovery.style.left='50%';
+  recovery.style.top='50%';
+  recovery.style.transform='translate(-50%,-50%)';
+  recovery.style.padding='15px 24px';
+
+  recovery.addEventListener('click',async()=>{
+    recovery.disabled=true;
+    recovery.textContent='Opening camera...';
+    await startCamera();
+    if(cameraEnabled) recovery.remove();
+    else{
+      recovery.disabled=false;
+      recovery.textContent='Try Camera Again';
+    }
+  });
+
+  cameraWrap.appendChild(recovery);
+}
+
+ensureCameraStartControl();
 
 window.addEventListener('resize',resizeOverlay);
 
