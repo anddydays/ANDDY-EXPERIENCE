@@ -540,6 +540,285 @@ body::before{
   box-shadow:0 0 11px rgba(49,141,209,.50) !important;
 }
 
+
+/* === RESPONSIVE: TABLET / IPAD / IPHONE === */
+
+/* Large tablets / iPad landscape */
+@media (max-width:1180px){
+  .shell{
+    padding:14px;
+    gap:12px;
+  }
+  .topbar{
+    grid-template-columns:1fr auto;
+    gap:10px;
+    padding:9px 12px 9px 16px;
+  }
+  .center-status{
+    display:none;
+  }
+  .workspace{
+    grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+    gap:12px;
+  }
+  .reaction-panel{
+    padding:13px;
+  }
+}
+
+/* iPad portrait / medium tablets */
+@media (max-width:900px){
+  html,body{
+    overflow-x:hidden;
+  }
+  body{
+    overflow-y:auto;
+  }
+  .shell{
+    height:auto;
+    min-height:100svh;
+    padding:12px;
+  }
+  .topbar{
+    position:sticky;
+    top:10px;
+    z-index:30;
+    grid-template-columns:1fr auto;
+    min-height:60px;
+    border-radius:24px;
+  }
+  .brand{
+    font-size:8.5px;
+    letter-spacing:.14em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .actions{
+    gap:7px;
+  }
+  .gestures-btn{
+    height:36px;
+    padding:0 12px;
+    font-size:7.5px;
+  }
+  .portfolio{
+    height:36px !important;
+    min-width:auto !important;
+    padding:0 12px !important;
+    font-size:7.5px !important;
+  }
+  .workspace{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto;
+    gap:12px;
+  }
+  .camera-panel{
+    min-height:58svh;
+    max-height:720px;
+  }
+  .reaction-panel{
+    min-height:520px;
+  }
+  .meme-frame{
+    min-height:360px;
+  }
+  #debugHud{
+    max-height:90px;
+  }
+  .gesture-panel{
+    top:82px;
+    right:12px;
+    width:min(460px,calc(100vw - 24px));
+    max-height:calc(100svh - 94px);
+  }
+}
+
+/* iPhone landscape / small tablets */
+@media (max-width:700px){
+  .shell{
+    padding:9px;
+    gap:9px;
+  }
+  .topbar{
+    top:6px;
+    min-height:56px;
+    padding:8px 9px 8px 12px;
+    border-radius:21px;
+  }
+  .brand{
+    max-width:42vw;
+    font-size:7.5px;
+  }
+  .actions{
+    gap:5px;
+  }
+  .gestures-btn{
+    height:34px;
+    padding:0 10px;
+    font-size:7px;
+  }
+  .portfolio{
+    height:34px !important;
+    padding:0 10px !important;
+    font-size:7px !important;
+  }
+  .portfolio-dot{
+    width:6px;
+    height:6px;
+  }
+  .camera-panel,.reaction-panel{
+    border-radius:24px;
+  }
+  .camera-panel{
+    min-height:56svh;
+  }
+  .reaction-panel{
+    min-height:480px;
+    padding:10px;
+  }
+  .reaction-head{
+    min-height:30px;
+  }
+  .reaction-title,.reaction-note{
+    font-size:7px;
+  }
+  .meme-frame{
+    min-height:320px;
+    border-radius:21px;
+  }
+  .bottom-copy{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:9px;
+  }
+  .bottom-copy h1{
+    font-size:38px;
+  }
+  .bottom-copy p{
+    max-width:none;
+    text-align:left;
+    font-size:7.5px;
+  }
+  #debugHud{
+    left:10px;
+    right:10px;
+    bottom:10px;
+    max-height:78px;
+    font-size:7.5px;
+    border-radius:14px;
+  }
+  .camera-label{
+    top:10px;
+    left:10px;
+  }
+  .pill{
+    height:30px;
+    padding:0 10px;
+    font-size:7px;
+  }
+}
+
+/* iPhone portrait */
+@media (max-width:480px){
+  .shell{
+    padding:7px;
+  }
+  .topbar{
+    grid-template-columns:minmax(0,1fr) auto;
+    top:5px;
+  }
+  .brand{
+    max-width:34vw;
+    font-size:7px;
+  }
+  .gestures-btn{
+    width:36px;
+    padding:0;
+    font-size:0;
+  }
+  .gestures-btn::after{
+    content:"?";
+    font-size:14px;
+    font-weight:800;
+  }
+  .portfolio{
+    min-width:0 !important;
+    padding:0 9px !important;
+  }
+  .portfolio span:not(.portfolio-dot){
+    display:none;
+  }
+  .portfolio::after{
+    content:"Portfolio";
+    font-size:6.8px;
+    letter-spacing:.11em;
+  }
+  .camera-panel{
+    min-height:54svh;
+  }
+  .reaction-panel{
+    min-height:440px;
+  }
+  .meme-frame{
+    min-height:280px;
+  }
+  .gesture-panel{
+    top:70px;
+    right:7px;
+    width:calc(100vw - 14px);
+    max-height:calc(100svh - 78px);
+    padding:15px;
+    border-radius:22px;
+  }
+  .gesture-panel h2{
+    font-size:32px;
+  }
+  .gesture-manual-grid{
+    grid-template-columns:1fr !important;
+  }
+  .manual-card{
+    min-height:auto;
+    padding:10px;
+  }
+}
+
+/* Very short landscape phones */
+@media (max-height:520px) and (orientation:landscape){
+  body{
+    overflow-y:auto;
+  }
+  .shell{
+    min-height:auto;
+  }
+  .workspace{
+    grid-template-columns:1.25fr .75fr;
+    grid-template-rows:none;
+  }
+  .camera-panel,.reaction-panel{
+    min-height:420px;
+  }
+  .reaction-panel{
+    max-height:none;
+  }
+  .gesture-panel{
+    top:66px;
+    max-height:calc(100vh - 74px);
+  }
+}
+
+/* Safe-area support for iPhone notch / Dynamic Island */
+@supports (padding:max(0px)){
+  .shell{
+    padding-left:max(7px,env(safe-area-inset-left));
+    padding-right:max(7px,env(safe-area-inset-right));
+    padding-bottom:max(7px,env(safe-area-inset-bottom));
+  }
+  .topbar{
+    margin-top:env(safe-area-inset-top);
+  }
+}
+
 </style>
 </head>
 <body>
