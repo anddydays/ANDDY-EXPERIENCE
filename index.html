@@ -415,6 +415,131 @@ a{color:inherit;text-decoration:none}
   .gesture-manual-grid{grid-template-columns:1fr}
 }
 
+
+/* === DARK BLUE LIQUID GLASS THEME === */
+:root{
+  --ink:#f7fbff;
+  --muted:rgba(226,239,252,.78);
+  --line:rgba(174,215,255,.28);
+  --glass:rgba(7,27,46,.72);
+  --glass-strong:rgba(10,38,64,.84);
+  --shadow:0 28px 80px rgba(0,9,22,.42);
+}
+html,body{
+  background:#071b2e !important;
+}
+body{
+  background:
+    radial-gradient(circle at 13% 8%,rgba(49,104,156,.42),transparent 28%),
+    radial-gradient(circle at 84% 16%,rgba(25,76,126,.46),transparent 32%),
+    radial-gradient(circle at 56% 86%,rgba(5,25,47,.72),transparent 44%),
+    linear-gradient(135deg,#061725 0%,#0a2944 45%,#04111e 100%) !important;
+}
+body::before{
+  background:
+    radial-gradient(circle at 25% 30%,rgba(92,155,215,.18),transparent 22%),
+    radial-gradient(circle at 75% 42%,rgba(65,126,184,.15),transparent 28%) !important;
+}
+.glass{
+  background:
+    linear-gradient(135deg,rgba(18,52,82,.82),rgba(5,22,39,.67)) !important;
+  border-color:rgba(171,215,255,.27) !important;
+  box-shadow:
+    0 28px 80px rgba(0,7,18,.44),
+    inset 0 1px 0 rgba(220,240,255,.22),
+    inset 0 -1px 0 rgba(112,174,225,.07) !important;
+  backdrop-filter:blur(30px) saturate(135%) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(135%) !important;
+}
+.topbar{
+  background:
+    linear-gradient(135deg,rgba(16,48,78,.88),rgba(4,20,36,.78)) !important;
+}
+.camera-panel{
+  background:#081d31 !important;
+}
+.camera-overlay{
+  background:
+    linear-gradient(135deg,rgba(100,168,225,.07),transparent 23%,transparent 72%,rgba(70,132,190,.05)),
+    linear-gradient(to top,rgba(3,16,29,.20),transparent 30%) !important;
+}
+.pill,
+.gestures-btn{
+  background:rgba(10,35,58,.76) !important;
+  border-color:rgba(176,218,255,.28) !important;
+  color:#eef8ff !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+}
+.gestures-btn:hover{
+  background:rgba(25,66,101,.88) !important;
+  border-color:rgba(195,228,255,.44) !important;
+}
+#debugHud{
+  background:rgba(3,18,32,.78) !important;
+  border-color:rgba(153,204,246,.25) !important;
+  color:rgba(235,247,255,.88) !important;
+}
+.reaction-panel{
+  background:
+    linear-gradient(145deg,rgba(13,44,72,.88),rgba(4,19,34,.78)) !important;
+}
+.meme-frame{
+  background:rgba(2,15,27,.55) !important;
+  border-color:rgba(159,207,247,.23) !important;
+}
+#memeImg{
+  background:rgba(3,17,30,.62) !important;
+}
+.reaction-note,
+.bottom-copy p,
+.gesture-intro,
+.manual-card span,
+.gesture-tip{
+  color:rgba(225,239,251,.76) !important;
+}
+.gesture-panel{
+  background:
+    linear-gradient(145deg,rgba(12,43,71,.96),rgba(3,17,31,.93)) !important;
+  border-color:rgba(176,217,251,.31) !important;
+}
+.gesture-scrim{
+  background:rgba(0,9,18,.42) !important;
+  backdrop-filter:blur(7px) !important;
+  -webkit-backdrop-filter:blur(7px) !important;
+}
+.manual-card{
+  background:rgba(22,61,94,.64) !important;
+  border-color:rgba(173,214,248,.22) !important;
+}
+.manual-card strong{
+  color:#ffffff !important;
+}
+.gesture-tip{
+  background:rgba(6,29,50,.72) !important;
+  border-color:rgba(165,208,245,.20) !important;
+}
+.gesture-close{
+  background:rgba(22,61,94,.82) !important;
+  border-color:rgba(190,224,252,.30) !important;
+}
+.portfolio{
+  background:#eef8ff !important;
+  color:#08233b !important;
+  border-color:#ffffff !important;
+  box-shadow:
+    0 9px 28px rgba(0,8,18,.34),
+    0 0 24px rgba(173,218,255,.13),
+    inset 0 1px 0 #fff !important;
+}
+.portfolio:hover{
+  background:#ffffff !important;
+  color:#061b2e !important;
+}
+.portfolio-dot{
+  background:#1769a8 !important;
+  box-shadow:0 0 11px rgba(49,141,209,.50) !important;
+}
+
 </style>
 </head>
 <body>
