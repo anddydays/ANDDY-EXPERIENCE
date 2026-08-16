@@ -387,6 +387,19 @@ pre.debug, code.debug, .source-dump, .code-dump { display:none !important; }
   object-fit:contain !important;
 }
 </style>
+
+<style id="anddy-v24-direct-image-fix">
+#customReactionImage{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  position:relative !important;
+  z-index:10 !important;
+}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#experienceMain">Skip to experience</a>
@@ -431,22 +444,8 @@ pre.debug, code.debug, .source-dump, .code-dump { display:none !important; }
       <div id="gifStage" class="gif-stage">
         <div id="cat" class="cat hidden"></div>
         <img id="gifReaction" class="gif-reaction hidden" alt="">
-        <img id="customReactionImage" class="custom-reaction-image hidden" alt="Local reaction image">
-      </div>
-
-      <div id="gestureText" class="gesture">READY</div>
-      <div id="gifStatus" class="gif-status">default · serio</div>
-    </div>
-
-    <div class="hint">
-      FIST · THUMBS UP · WINK · LAUGH · OPEN MOUTH · HOLD HEAD<br>
-      Local reactions only.
-    </div>
-  </div>
-</section>
-</main>
-
-<script type="module">
+        <img id="customReactionImage" class="custom-reaction-image" src="https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/serio.jpg" alt="Local cat reaction">
+      <<script type="module">
 const video = document.querySelector('#camera');
 const canvas = document.querySelector('#overlay');
 const ctx = canvas.getContext('2d');
@@ -463,6 +462,14 @@ const gestureText = document.querySelector('#gestureText');
 const gifReaction = document.querySelector('#gifReaction');
 const gifStatus = document.querySelector('#gifStatus');
 const customReactionImage = document.querySelector('#customReactionImage');
+customReactionImage.addEventListener('load',()=>{
+  customReactionImage.classList.remove('hidden');
+  console.log('[ANDDY] image loaded:', customReactionImage.src);
+});
+customReactionImage.addEventListener('error',()=>{
+  gifStatus.textContent='IMAGE LOAD ERROR';
+  console.error('[ANDDY] image failed:', customReactionImage.src);
+});
 const faceLabel = document.querySelector('#faceLabel');
 
 
@@ -655,40 +662,32 @@ function reactionEndpoint(type){
 }
 
 
+
+const LOCAL_CAT_REACTIONS = {
+  'default':        'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/serio.jpg',
+  'hand:fist':      'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/pu%C3%B1o.jpg',
+  'hand:thumbsup':  'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/duren.jpg',
+  'face:surprise':  'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/gritando.jpg',
+  'face:wink':      'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/coqueto.jpg',
+  'face:laugh':     'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/jeje.jpg',
+  'pose:headhold':  'https://raw.githubusercontent.com/anddydays/ANDDY-EXPERIENCE/main/gatos/preocupado.jpg'
+};
+
 async function showLocalCatReaction(triggerKey){
-  const filename = LOCAL_CAT_REACTIONS[triggerKey];
-  if(!filename) return false;
+  const url = LOCAL_CAT_REACTIONS[triggerKey];
+  if(!url) return false;
 
-  const url = await loadFirstWorkingImage(localCatCandidates(filename));
-
-  if(!url){
-    customReactionImage.classList.add('hidden');
-    gifStatus.textContent = 'missing · ' + filename;
-    console.error('[ANDDY] Could not load local reaction:', filename);
-    return false;
-  }
-
-  ++localReactionToken;
-  ++gifRequestToken;
-
-  gifReaction.removeAttribute('src');
   gifReaction.classList.add('hidden');
   cat.classList.add('hidden');
 
-  return new Promise(resolve=>{
-    customReactionImage.onload=()=>{
-      customReactionImage.classList.remove('hidden');
-      gifStatus.textContent = triggerKey==='default'
-        ? 'default · serio'
-        : 'reaction · '+triggerKey.replace(':',' ');
-      resolve(true);
-    };
-    customReactionImage.onerror=()=>{
-      customReactionImage.classList.add('hidden');
-      resolve(false);
-    };
-    customReactionImage.src=url;
-  });
+  customReactionImage.classList.remove('hidden');
+  customReactionImage.src = url;
+
+  gifStatus.textContent = triggerKey === 'default'
+    ? 'default · serio'
+    : 'reaction · ' + triggerKey.replace(':',' ');
+
+  return true;
 }
 
 async function showConfiguredReaction(triggerKey){
@@ -1111,7 +1110,7 @@ async function startCamera(){
     }
 
     cameraEnabled = true;
-    showLocalCatReaction('default');
+    await showLocalCatReaction('default');
     running = true;
     lastVideoTime = -1;
 
@@ -1446,6 +1445,20 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden && cameraEnabled){
     /* Por privacidad, al ocultar la pestaña detenemos el análisis,
        pero no quitamos el permiso ni apagamos el stream automáticamente. */
+    running=false;
+  }else if(!document.hidden && cameraEnabled){
+    running=true;
+    lastVideoTime=-1;
+    requestAnimationFrame(loop);
+  }
+});
+
+window.addEventListener('pagehide',()=>{
+  if(stream){
+    stream.getTracks().forEach(track=>track.stop());
+  }
+});
+</script>stream automáticamente. */
     running=false;
   }else if(!document.hidden && cameraEnabled){
     running=true;
