@@ -199,46 +199,17 @@ body > *:not(#matrixVideoBackground){position:relative;z-index:0;}
   filter:drop-shadow(0 0 3px rgba(0,255,65,.68)) !important;
 }
 
-/* === BACK TO PORTFOLIO === */
-.portfolio-link{
-  margin-left:auto;
-  margin-right:18px;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:9px 14px;
-  border:1px solid rgba(0,255,65,.34);
-  border-radius:999px;
-  background:rgba(0,12,4,.68);
-  color:#75ff98;
-  text-decoration:none;
-  font:700 9px Arial,sans-serif;
-  letter-spacing:.13em;
-  text-transform:uppercase;
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  transition:background .25s ease,border-color .25s ease,box-shadow .25s ease,transform .25s ease;
-}
-.portfolio-link-dot{
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  background:#00ff41;
-  box-shadow:0 0 11px rgba(0,255,65,.85);
-}
-.portfolio-link:hover{
-  background:rgba(0,255,65,.10);
-  border-color:rgba(0,255,65,.62);
-  box-shadow:0 0 20px rgba(0,255,65,.10);
-  transform:translateY(-1px);
-}
-@media(max-width:760px){
-  .portfolio-link{
-    margin-left:0;
-    margin-right:10px;
-    padding:8px 11px;
-    font-size:8px;
-  }
+/* === BODY / POSE SENSOR === */
+#poseOverlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+  z-index:2;
+  pointer-events:none;
+  filter:drop-shadow(0 0 3px rgba(0,255,65,.58));
 }
 </style></head>
 <body>
@@ -250,10 +221,6 @@ body > *:not(#matrixVideoBackground){position:relative;z-index:0;}
 <div class="noise"></div>
 <header>
   <div class="brand"></div>
-  <a class="portfolio-link" href="https://anddydays.github.io/" aria-label="Back to portfolio">
-    <span class="portfolio-link-dot"></span>
-    <span>Portfolio</span>
-  </a>
   <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">camera offline</span></div>
 </header>
 
@@ -264,6 +231,7 @@ body > *:not(#matrixVideoBackground){position:relative;z-index:0;}
       <video id="camera" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
       <canvas id="faceOverlay"></canvas>
+      <canvas id="poseOverlay"></canvas>
         <div id="framingAssist" class="framing-assist">
           <div class="framing-head"></div>
           <div class="framing-hand left"></div>
@@ -271,7 +239,7 @@ body > *:not(#matrixVideoBackground){position:relative;z-index:0;}
           <div id="framingStatus" class="framing-status">Center your face</div>
         </div>
 
-      <div class="info-chip">LOCAL CAMERA PROCESSING · HAND + FACE</div>
+      <div class="info-chip">LOCAL CAMERA PROCESSING · HAND + FACE + BODY</div>
       <button id="gesturesTab" class="gestures-tab" type="button">Gestures</button>
       <div id="gestureDrawer" class="gesture-drawer hidden">
         <h3>Cómo activar las reacciones</h3>
@@ -327,6 +295,8 @@ const overlay = document.querySelector('#overlay');
 const ctx = overlay.getContext('2d');
 const faceOverlay = document.querySelector('#faceOverlay');
 const faceCtx = faceOverlay.getContext('2d');
+const poseOverlay = document.querySelector('#poseOverlay');
+const poseCtx = poseOverlay.getContext('2d');
 const permission = document.querySelector('#permission');
 const permissionText = document.querySelector('#permissionText');
 const startButton = document.querySelector('#start');
@@ -369,6 +339,9 @@ let running = false;
 let cameraEnabled = false;
 let handLandmarker = null;
 let faceLandmarker = null;
+let poseLandmarker = null;
+let lastPoseTime = -1;
+let latestPoseLandmarks = null;
 let detectorsReady = false;
 let lastVideoTime = -1;
 let lastFaceTime = -1;
@@ -381,6 +354,25 @@ let faceCandidateSince = 0;
 let handCandidate = 'other';
 let handCandidateSince = 0;
 let headHoldSince = 0;
+
+const VOTE_WINDOW = 12;
+const VOTE_MAJORITY = 7;
+const gestureVotes = [];
+
+function stableVote(name){
+  gestureVotes.push(name || 'neutral');
+  if(gestureVotes.length > VOTE_WINDOW) gestureVotes.shift();
+
+  const counts = {};
+  for(const g of gestureVotes) counts[g]=(counts[g]||0)+1;
+
+  let best='neutral', bestCount=0;
+  for(const [g,c] of Object.entries(counts)){
+    if(c>bestCount){ best=g; bestCount=c; }
+  }
+  return bestCount>=VOTE_MAJORITY ? best : null;
+}
+
 
 let lastLipMetric = null;
 let lipMotionEnergy = 0;
@@ -568,6 +560,7 @@ function clearFaceOverlay(){
 function drawFaceLandmarks(lm){
   if(!lm?.length) {
     clearFaceOverlay();
+  clearPoseOverlay();
     return;
   }
 
@@ -837,6 +830,119 @@ function detectHeadHold(hands,faceLm){
   return false;
 }
 
+
+const POSE_CONNECTIONS = [
+  [11,12],[11,13],[13,15],[12,14],[14,16],
+  [11,23],[12,24],[23,24],
+  [23,25],[25,27],[24,26],[26,28]
+];
+
+function resizePoseOverlay(){
+  const r=video.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(1,Math.round(r.width*dpr));
+  const h=Math.max(1,Math.round(r.height*dpr));
+  if(poseOverlay.width!==w) poseOverlay.width=w;
+  if(poseOverlay.height!==h) poseOverlay.height=h;
+}
+
+function clearPoseOverlay(){
+  poseCtx.clearRect(0,0,poseOverlay.width,poseOverlay.height);
+}
+
+function drawPose(lm){
+  resizePoseOverlay();
+  clearPoseOverlay();
+  if(!lm?.length) return;
+
+  const W=poseOverlay.width, H=poseOverlay.height;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const p=i=>{
+    const q=lm[i];
+    if(!q || (q.visibility!==undefined && q.visibility<.35)) return null;
+    return {x:(1-q.x)*W,y:q.y*H};
+  };
+
+  poseCtx.lineWidth=Math.max(1.2,1.3*dpr);
+  poseCtx.strokeStyle='rgba(0,255,65,.52)';
+  for(const [a,b] of POSE_CONNECTIONS){
+    const A=p(a), B=p(b);
+    if(!A||!B) continue;
+    poseCtx.beginPath();
+    poseCtx.moveTo(A.x,A.y);
+    poseCtx.lineTo(B.x,B.y);
+    poseCtx.stroke();
+  }
+
+  const ids=[11,12,13,14,15,16,23,24,25,26,27,28];
+  poseCtx.fillStyle='rgba(0,255,65,.90)';
+  for(const id of ids){
+    const P=p(id); if(!P) continue;
+    poseCtx.beginPath();
+    poseCtx.arc(P.x,P.y,2.2*dpr,0,Math.PI*2);
+    poseCtx.fill();
+  }
+}
+
+function poseHandsNearHead(pose,faceLm){
+  if(!pose?.length || !faceLm?.length) return false;
+
+  const leftW=pose[15], rightW=pose[16];
+  const leftS=pose[11], rightS=pose[12];
+  if(!leftW||!rightW||!leftS||!rightS) return false;
+
+  // Face center/scale from real face landmarks.
+  const faceCenter={
+    x:(faceLm[33].x+faceLm[263].x)/2,
+    y:(faceLm[10].y+faceLm[152].y)/2
+  };
+  const faceWidth=Math.max(.08,Math.abs(faceLm[263].x-faceLm[33].x));
+
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  const bothClose=
+    dist(leftW,faceCenter) < faceWidth*1.75 &&
+    dist(rightW,faceCenter) < faceWidth*1.75;
+
+  // Wrists should also be above/around shoulder level.
+  const shoulderY=(leftS.y+rightS.y)/2;
+  const raised=leftW.y < shoulderY+.08 && rightW.y < shoulderY+.08;
+
+  return bothClose && raised;
+}
+
+function processPose(){
+  if(!poseLandmarker || video.readyState<2 || video.currentTime===lastPoseTime) return;
+  lastPoseTime=video.currentTime;
+
+  try{
+    const result=poseLandmarker.detectForVideo(video,performance.now());
+    const pose=result?.landmarks?.[0] || null;
+    latestPoseLandmarks=pose;
+
+    if(!pose){
+      clearPoseOverlay();
+      return;
+    }
+
+    drawPose(pose);
+
+    // Body pose reinforces the existing "hands on head" reaction.
+    if(
+      performance.now() >= reactionLockedUntil &&
+      poseHandsNearHead(pose,latestFaceLandmarks)
+    ){
+      const voted=stableVote('headHold');
+      if(voted==='headHold'){
+        triggerReaction('headHold');
+        if(handLabel) handLabel.textContent='BODY + HANDS · HOLDING HEAD';
+      }
+    }
+  }catch(err){
+    clearPoseOverlay();
+    console.warn('Pose detection error',err);
+  }
+}
+
 async function initDetectors(){
   if(detectorsReady) return;
 
@@ -885,6 +991,27 @@ async function initDetectors(){
     console.warn('GPU face detector failed, using default delegate',err);
     delete faceOptions.baseOptions.delegate;
     faceLandmarker = await vision.FaceLandmarker.createFromOptions(resolver,faceOptions);
+  }
+
+
+  const poseOptions = {
+    baseOptions:{
+      modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+      delegate:'GPU'
+    },
+    runningMode:'VIDEO',
+    numPoses:1,
+    minPoseDetectionConfidence:.38,
+    minPosePresenceConfidence:.38,
+    minTrackingConfidence:.38
+  };
+
+  try{
+    poseLandmarker = await vision.PoseLandmarker.createFromOptions(resolver,poseOptions);
+  }catch(err){
+    console.warn('GPU pose detector failed, using default delegate',err);
+    delete poseOptions.baseOptions.delegate;
+    poseLandmarker = await vision.PoseLandmarker.createFromOptions(resolver,poseOptions);
   }
 
   detectorsReady=true;
@@ -1098,9 +1225,11 @@ function processHands(){
     }
 
     if(gesture==='thumbsUp' && now-handCandidateSince>=HAND_HOLD_MS){
-      triggerReaction('thumbsUp');
+      if(stableVote('thumbsUp')==='thumbsUp') triggerReaction('thumbsUp');
     }else if(gesture==='fist' && now-handCandidateSince>=HAND_HOLD_MS){
-      triggerReaction('fist');
+      if(stableVote('fist')==='fist') triggerReaction('fist');
+    }else{
+      stableVote('neutral');
     }
 
   }catch(err){
@@ -1115,6 +1244,7 @@ function loop(){
 
   processHands();
   processFace();
+  processPose();
   updateDefaultReaction();
 
   requestAnimationFrame(loop);
